@@ -1,0 +1,27 @@
+# Forbidden phrases that should not appear in support responses
+# These are phrases that violate company policy or may cause legal issues
+
+# Negative/Harmful language
+I don't care
+Your fault
+Stupid question
+That's impossible
+We don't support that
+
+# Promises we can't keep
+100% guaranteed
+Money back no questions asked
+We'll fix it immediately
+Never happen again
+
+# Information leaks
+Our database
+Internal system
+Proprietary technology
+Confidential code
+
+# Inappropriate language
+I hate this
+This job sucks
+Customer is wrong
+We're too busy

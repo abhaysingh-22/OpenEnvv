@@ -1,0 +1,33 @@
+# OpenEnv Configuration File
+
+environment:
+  name: OpenEnv
+  version: 1.0.0
+  max_steps: 100
+  timeout: 300
+
+tasks:
+  difficulties:
+    - easy
+    - medium
+    - hard
+  data_dir: ./data
+
+agents:
+  types:
+    - dummy
+    - hf
+  config:
+    dummy: {}
+    hf:
+      model_name: gpt2
+      device: cpu
+
+graders:
+  support:
+    check_policy: true
+    check_forbidden_phrases: true
+
+logging:
+  level: INFO
+  file: logs/openenv.log

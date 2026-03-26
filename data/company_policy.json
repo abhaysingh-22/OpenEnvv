@@ -1,0 +1,28 @@
+{
+  "response_guidelines": {
+    "tone": "professional_and_helpful",
+    "max_response_time_hours": 24,
+    "escalation_threshold": "complex_or_angry"
+  },
+  "content_rules": {
+    "must_include": [
+      "greeting",
+      "acknowledgment_of_issue",
+      "solution_or_next_steps"
+    ],
+    "should_avoid": [
+      "negative_language",
+      "promises_we_cannot_keep",
+      "sharing_internal_information"
+    ]
+  },
+  "refund_policy": {
+    "days_for_refund": 30,
+    "conditions": "unused_service"
+  },
+  "escalation_contacts": {
+    "billing": "billing@company.com",
+    "technical": "support@company.com",
+    "legal": "legal@company.com"
+  }
+}
