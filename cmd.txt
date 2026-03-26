@@ -1,0 +1,5 @@
+cd /Users/abhaysingh22_/Developer/OpenEnv
+pip install -r requirements.txt
+python app.py                    # Run the main app
+python scripts/baseline.py       # Run baseline evaluation
+pytest tests/                    # Run the test suite
