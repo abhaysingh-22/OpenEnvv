@@ -1,29 +1,34 @@
-"""
-Validation script for scoring system against expected baseline performance.
-
-This script tests the OpenEnv scoring system with different agents to ensure
-rewards match expected ranges defined in update.md:
-
-Expected Scores:
-- Easy:   Perfect 0.85, Imperfect 0.6, Random 0.2
-- Medium: Perfect 0.75, Imperfect 0.5, Random 0.2
-- Hard:   Perfect 0.6-0.7, Imperfect 0.3-0.5, Random 0.0-0.2
-"""
+"""Validation script to test scoring system with different agent types."""
 
 import sys
 import random
 from pathlib import Path
 from typing import Dict, List, Tuple
+from abc import ABC, abstractmethod
 
-# Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from env import Environment, models
 from tasks import EasyTask, MediumTask, HardTask
 from graders import SupportGrader
-from agents import BaseAgent
 import json
+
+
+class BaseAgent(ABC):
+    """Abstract base class for agents."""
+    
+    def __init__(self, agent_id: str, name: str):
+        self.agent_id = agent_id
+        self.name = name
+        self.action_history = []
+    
+    @abstractmethod
+    def act(self, observation: Dict) -> models.Action:
+        pass
+    
+    def reset(self) -> None:
+        self.action_history = []
 
 
 class RandomAgent(BaseAgent):
