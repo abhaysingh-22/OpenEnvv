@@ -1,6 +1,7 @@
 """Tests for the graders module."""
 import pytest
-from graders import SupportGrader
+from graders.support_grader import SupportGrader
+from env.models import State, Action, Observation
 
 
 def test_support_grader_initialization():
@@ -10,17 +11,26 @@ def test_support_grader_initialization():
     assert grader.scores == []
 
 
-def test_support_grader_grading(sample_grader):
+def test_support_grader_grading():
     """Test support grader grading."""
-    state = {'test': 'value'}
-    reward = sample_grader.grade(state, is_complete=True)
-    assert isinstance(reward, float)
-    assert 0 <= reward <= 1
+    grader = SupportGrader()
+    obs = Observation(ticket_id="1", user_name="A", user_email="a", subject="a", body="a")
+    state = State(task_id="easy_ticket_1", step=1, observation=obs)
+    
+    act = Action(tool_name="send_password_reset", tool_args={"email": "john@example.com"})
+    reward = grader.grade(state, act, is_complete=True)
+    assert getattr(reward, 'value', None) is not None
+    assert reward.value == 1.0
 
 
-def test_score_history(sample_grader):
+def test_score_history():
     """Test score history tracking."""
-    sample_grader.grade({'test': 'value'}, is_complete=True)
-    sample_grader.grade({'test': 'value'}, is_complete=False)
-    history = sample_grader.get_score_history()
+    grader = SupportGrader()
+    obs = Observation(ticket_id="1", user_name="A", user_email="a", subject="a", body="a")
+    state = State(task_id="easy_ticket_1", step=1, observation=obs)
+    act = Action(tool_name="reply_to_customer", tool_args={})
+    
+    grader.grade(state, act, is_complete=True)
+    grader.grade(state, act, is_complete=False)
+    history = grader.get_score_history()
     assert len(history) == 2
