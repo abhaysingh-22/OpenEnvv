@@ -1,6 +1,7 @@
 """Base task class for OpenEnv."""
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
+from env.models import Observation, Action
 
 
 class BaseTask(ABC):
@@ -18,16 +19,16 @@ class BaseTask(ABC):
         self.task_id = task_id
         self.title = title
         self.description = description
-        self.state = None
+        self.state: Optional[Observation] = None
         self.completed = False
     
     @abstractmethod
-    def reset(self) -> Dict[str, Any]:
+    def reset(self) -> Observation:
         """Reset the task to initial state."""
         pass
     
     @abstractmethod
-    def step(self, action: str) -> Dict[str, Any]:
+    def step(self, action: Action) -> Observation:
         """
         Execute one step of the task.
         
@@ -35,7 +36,7 @@ class BaseTask(ABC):
             action: The action to execute
             
         Returns:
-            Updated state
+            Updated state (Observation)
         """
         pass
     
@@ -43,7 +44,3 @@ class BaseTask(ABC):
     def is_complete(self) -> bool:
         """Check if the task has been completed successfully."""
         pass
-    
-    def get_state(self) -> Dict[str, Any]:
-        """Get the current task state."""
-        return self.state
