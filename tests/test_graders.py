@@ -20,7 +20,8 @@ def test_support_grader_grading():
     act = Action(tool_name="send_password_reset", tool_args={"email": "john@example.com"})
     reward = grader.grade(state, act, is_complete=True)
     assert getattr(reward, 'value', None) is not None
-    assert reward.value == 1.0
+    # Step 1 correct gets 0.9, normalized by 1.2 = 0.75
+    assert reward.value == 0.75
 
 
 def test_score_history():

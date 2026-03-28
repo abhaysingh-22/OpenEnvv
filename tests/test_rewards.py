@@ -4,29 +4,29 @@ from graders.rewards import RewardCalculator
 
 
 def test_reward_calculator_initialization():
-    """Test reward calculator initialization."""
-    calc = RewardCalculator(max_reward=1.0, step_penalty=0.01)
-    assert calc.max_reward == 1.0
-    assert calc.step_penalty == 0.01
+    """Test reward calculator initializes with zero reward."""
+    calc = RewardCalculator()
+    assert calc.total_reward == 0.0
 
 
 def test_completion_reward():
-    """Test completion reward calculation."""
+    """Test adding completion rewards."""
     calc = RewardCalculator()
-    reward = calc.calculate_completion_reward(steps_taken=10, max_steps=100)
-    assert isinstance(reward, float)
-    assert 0 <= reward <= 1.0
+    calc.add_reward(0.9)
+    assert calc.total_reward == 0.9
 
 
 def test_partial_reward():
-    """Test partial reward calculation."""
+    """Test adding partial rewards."""
     calc = RewardCalculator()
-    reward = calc.calculate_partial_reward(progress=0.5)
-    assert reward == 0.5
+    calc.add_reward(0.4)
+    calc.add_reward(0.3)
+    assert calc.total_reward == 0.7
 
 
 def test_penalty_calculation():
-    """Test penalty calculation."""
+    """Test penalty subtraction."""
     calc = RewardCalculator()
-    penalty = calc.calculate_penalty('invalid_action')
-    assert penalty == 0.1
+    calc.add_reward(0.9)
+    calc.add_reward(-0.5)
+    assert calc.total_reward == 0.4

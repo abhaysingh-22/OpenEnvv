@@ -134,54 +134,104 @@ class PerfectAgent(BaseAgent):
 
 
 class ImperfectAgent(BaseAgent):
-    """Agent that takes mostly correct but occasionally suboptimal actions."""
+    """Agent that makes occasional mistakes."""
     
     def __init__(self, agent_id: str = "imperfect_0"):
         """Initialize the imperfect agent."""
         super().__init__(agent_id, "ImperfectAgent")
-        self.task_type = None
         self.step = 0
+        self.task_type = None
     
     def reset(self) -> None:
         """Reset agent state."""
         super().reset()
         self.step = 0
+        self.task_type = None
     
     def act(self, observation: dict) -> models.Action:
-        """Take mostly optimal action with occasional suboptimal choices."""
+        """Take action with occasional mistakes for the actual task."""
         self.step += 1
         
-        # 50% of the time, take suboptimal but not catastrophic path
-        if random.random() < 0.5 and self.step == 1:
-            # Skip investigation step, go straight to response
-            # This results in partial credit but not full credit
-            return models.Action(
-                tool_name="reply_to_customer",
-                tool_args={"content": "I can help. Please update your client to v2.1 and let me know if refunds are still needed."}
-            )
+        # Detect task type from observation
+        obs_str = str(observation).lower() if observation else ""
         
-        # Default: optimal path
-        if self.step == 1:
-            # First step - investigate/check policy
-            return models.Action(
-                tool_name="request_logs",
-                tool_args={}
-            )
-        elif self.step == 2:
-            # Second step - respond with solution
-            return models.Action(
-                tool_name="reply_to_customer",
-                tool_args={"content": "Based on the system check, please update your client to v2.1. Regarding refunds, our policy allows them within 30 days only."}
-            )
+        if "password" in obs_str:
+            self.task_type = "easy"
+        elif "refund" in obs_str:
+            self.task_type = "medium"
         else:
-            # Cleanup
-            return models.Action(
-                tool_name="close_ticket",
-                tool_args={}
-            )
+            self.task_type = "hard"
+        
+        # Task-specific behavior
+        if self.task_type == "easy":
+            return self._easy_action()
+        elif self.task_type == "medium":
+            return self._medium_action()
+        else:
+            return self._hard_action()
+    
+    def _easy_action(self) -> models.Action:
+        """Imperfect easy task behavior - 30% error on step 1."""
+        if self.step == 1:
+            if random.random() < 0.3:  # 30% chance of wrong action
+                return models.Action(tool_name="close_ticket", tool_args={})
+            else:
+                return models.Action(
+                    tool_name="send_password_reset",
+                    tool_args={"email": "john@example.com"}
+                )
+        else:
+            return models.Action(tool_name="close_ticket", tool_args={})
+    
+    def _medium_action(self) -> models.Action:
+        """Imperfect medium task behavior - 40% error step 1, 45% weak response step 2."""
+        if self.step == 1:
+            if random.random() < 0.40:  # 40% chance to skip logs
+                return models.Action(
+                    tool_name="reply_to_customer",
+                    tool_args={"content": "We cannot refund this."}
+                )
+            else:
+                return models.Action(tool_name="request_logs", tool_args={})
+        else:
+            # 45% chance of weak response
+            if random.random() < 0.45:
+                return models.Action(
+                    tool_name="reply_to_customer",
+                    tool_args={"content": "No refund available."}
+                )
+            else:
+                return models.Action(
+                    tool_name="reply_to_customer",
+                    tool_args={"content": "Our policy only allows refunds within 30 days of purchase."}
+                )
+    
+    def _hard_action(self) -> models.Action:
+        """Imperfect hard task behavior - 35% error step 1, 40% weak response step 2."""
+        if self.step == 1:
+            if random.random() < 0.35:  # 35% chance to skip logs
+                return models.Action(
+                    tool_name="reply_to_customer",
+                    tool_args={"content": "Try update to v2.1"}
+                )
+            else:
+                return models.Action(tool_name="request_logs", tool_args={})
+        elif self.step == 2:
+            if random.random() < 0.40:  # 40% chance of weak response
+                return models.Action(
+                    tool_name="reply_to_customer",
+                    tool_args={"content": "Not sure what the fix is."}
+                )
+            else:
+                return models.Action(
+                    tool_name="reply_to_customer",
+                    tool_args={"content": "Update your client to v2.1 to fix ERR-99."}
+                )
+        else:
+            return models.Action(tool_name="close_ticket", tool_args={})
 
 
-def run_episode(env: Environment, agent: BaseAgent, max_steps: int) -> Tuple[float, List[float]]:
+def run_episode(env: Environment, agent: BaseAgent, max_steps: int, debug: bool = False) -> Tuple[float, List[float]]:
     """
     Run a single episode and return final task score and individual step rewards.
     
@@ -192,6 +242,7 @@ def run_episode(env: Environment, agent: BaseAgent, max_steps: int) -> Tuple[flo
         env: Environment instance
         agent: Agent instance
         max_steps: Maximum number of steps
+        debug: Whether to print step-by-step details
         
     Returns:
         Tuple of (final_score, step_rewards)
@@ -200,9 +251,11 @@ def run_episode(env: Environment, agent: BaseAgent, max_steps: int) -> Tuple[flo
     agent.reset()
     final_score = 0.0
     step_rewards = []
+    actions = []
     
     for step in range(max_steps):
         action = agent.act(state)
+        actions.append(action.tool_name)
         state, reward_obj, done, info = env.step(action)
         
         # Extract reward value from Reward object
@@ -215,8 +268,14 @@ def run_episode(env: Environment, agent: BaseAgent, max_steps: int) -> Tuple[flo
         step_rewards.append(reward_value)
         final_score = reward_value  # Use final step's reward as task score
         
+        if debug and step < 3:
+            print(f"      DEBUG Step {step+1}: action={action.tool_name}, score={reward_value:.3f}")
+        
         if done:
             break
+    
+    if debug:
+        print(f"      DEBUG Actions: {' → '.join(actions)}")
     
     return final_score, step_rewards
 
@@ -271,7 +330,9 @@ def test_difficulty_level(
     
     for episode in range(num_episodes):
         agent = agent_class()
-        final_score, step_rewards = run_episode(env, agent, max_steps)
+        # Enable debug for imperfect agents on first episode
+        is_debug = (agent_name == "ImperfectAgent" and episode == 0)
+        final_score, step_rewards = run_episode(env, agent, max_steps, debug=is_debug)
         rewards.append(final_score)
         detailed_rewards.append({
             'episode': episode + 1,
