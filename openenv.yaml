@@ -1,32 +1,38 @@
-# OpenEnv Configuration File
+# OpenEnv Configuration File for Customer Support Ticket Environment
 
 environment:
-  name: OpenEnv
+  name: CustomerSupportEnv
   version: 1.0.0
-  max_steps: 100
+  max_steps: 10
   timeout: 300
+  types:
+    observation: "env.models.Observation"
+    action: "env.models.Action"
+    reward: "env.models.Reward"
 
 tasks:
   difficulties:
     - easy
     - medium
     - hard
-  data_dir: ./data
+  descriptions:
+    easy: "Password Reset Request"
+    medium: "Refund Request with Policy Check"
+    hard: "Technical Troubleshooting (API 500)"
 
 agents:
   types:
-    - dummy
-    - hf
+    - baseline
   config:
-    dummy: {}
-    hf:
-      model_name: gpt2
-      device: cpu
+    baseline:
+      model_name: "gpt-4o-mini"
+      provider: "openai"
 
 graders:
   support:
     check_policy: true
-    check_forbidden_phrases: true
+    check_actions: true
+    penalize_invalid: true
 
 logging:
   level: INFO
