@@ -1,189 +1,65 @@
-# OpenEnv
+# OpenEnv: Customer Support Ticket Environment
 
-OpenEnv is an environment framework for training and evaluating agents on support ticket tasks.
+This OpenEnv implementation simulates a real-world **Customer Support Environment** where an AI agent can learn to manage, triage, and resolve support tickets.
 
-## Project Structure
+## Real-World Simulation
+This environment evaluates AI agents on processing genuine user support requests. It is structured around the `step()`, `reset()`, and `state()` API as defined by the OpenEnv spec. Agents must select the proper tool and arguments to move tasks forward. There are 3 tasks (Easy, Medium, Hard) representing increasingly difficult customer support scenarios.
 
-```
-OpenEnv/
-├── env/                    # Core environment module
-├── tasks/                  # Task implementations
-├── graders/                # Grading and reward systems
-├── agents/                 # Agent implementations
-├── data/                   # Task data and resources
-├── tests/                  # Test suite
-├── scripts/                # Utility scripts
-├── config/                 # Configuration files
-├── app.py                  # Main application entry point
-├── requirements.txt        # Python dependencies
-├── Dockerfile              # Docker configuration
-└── README.md              # This file
-```
+## Tasks and Graders
+- **Easy**: Password Reset Request. The agent identifies the user and sends a reset link.
+- **Medium**: Refund Request. The agent must verify the purchase date against a 30-day refund policy and process or deny the refund accordingly.
+- **Hard**: Technical Troubleshooting. A multi-step flow where the agent must first ask the user for system logs, parse the provided error code, and supply the correct resolution to close the ticket.
 
-## Installation
+Graders track whether the agent successfully completes the task and provides a deterministic `0.0` - `1.0` score with partial progress signals and penalties for bad actions (e.g. issuing a refund outside policy limits).
+
+## Observation & Action Spaces (Pydantic Typed)
+
+### Observation Space
+- `ticket_id` (str): Identifier.
+- `user_name` / `user_email` (str): User profiling.
+- `subject` / `body` (str): Content of the ticket.
+- `history` (List[Dict]): The message trajectory so far.
+- `system_data` (Dict): Internal data the agent can consult (e.g. account active state, purchase dates, internal known issues).
+
+### Action Space
+The agent responds by selecting a tool:
+- `tool_name` (str): E.g. `reply_to_customer`, `send_password_reset`, `issue_refund`, `request_logs`, `close_ticket`.
+- `tool_args` (Dict): The argument for the chosen tool (e.g. `{"content": "..."}`).
+
+### Reward Space
+- `value` (float): The final score (0.0 to 1.0).
+- `is_complete` (bool): Whether the episode should terminate.
+- `info` (str): Debug info for the taken action or penalty.
+
+## Setup Instructions
 
 ### Prerequisites
-- Python 3.8 or higher
-- pip (Python package installer)
+- Python 3.10+
+- OpenAI API Key
 
-### Setup
+### Installation
 
-1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone <repository>
 cd OpenEnv
-```
-
-2. Create a virtual environment:
-```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. Copy the environment file:
-```bash
-cp .env.example .env
-```
-
-## Usage
-
-### Running the Application
+### Running the Baseline Script (Inference)
+The baseline uses `gpt-4o-mini` via the `openai` Python client to interact with the environment and reproducible scores are calculated at the end.
 
 ```bash
-python app.py
-```
-
-### Running with Scripts
-
-**Baseline evaluation:**
-```bash
+export OPENAI_API_KEY="your-sk-key"
 python scripts/baseline.py
 ```
 
-**Custom run:**
-```bash
-python scripts/run_env.py --difficulty easy --agent dummy --episodes 10
-```
+### Hugging Face Space Deployment
+The project is configured so that it can be dropped into a Docker-based Hugging Face Space. The `app.py` script starts a lightweight FastAPI server on port `7860` to comply with Spaces container health checks.
 
-Options:
-- `--difficulty`: Task difficulty (easy, medium, hard)
-- `--agent`: Agent type (dummy, hf)
-- `--episodes`: Number of episodes to run
-- `--max-steps`: Maximum steps per episode
-
-### Running Tests
-
-```bash
-pytest tests/
-pytest tests/ -v  # Verbose output
-pytest tests/ --cov=.  # With coverage
-```
-
-## Components
-
-### Environment (`env/`)
-The core environment that manages task execution and agent interactions.
-
-### Tasks (`tasks/`)
-Different task implementations organized by difficulty level.
-
-### Graders (`graders/`)
-Reward calculation and task evaluation systems.
-
-### Agents (`agents/`)
-Agent implementations including dummy agents and Hugging Face-based agents.
-
-## Configuration
-
-Configuration is managed through:
-- `config/settings.py` - Python configuration
-- `openenv.yaml` - YAML configuration file
-- `.env` - Environment variables
-
-## Docker
-
-Build the Docker image:
 ```bash
 docker build -t openenv:latest .
+docker run -p 7860:7860 openenv:latest
 ```
-
-Run with Docker:
-```bash
-docker run -it openenv:latest
-```
-
-## Testing
-
-The project includes comprehensive tests for all modules. Run tests with:
-
-```bash
-# Run all tests
-pytest
-
-# Run specific test file
-pytest tests/test_environment.py
-
-# Run with coverage report
-pytest --cov=. tests/
-```
-
-## API Reference
-
-### Environment
-
-```python
-from env import Environment
-from tasks import EasyTask
-from graders import SupportGrader
-
-task = EasyTask('task_1', 'Title', 'Description', {})
-grader = SupportGrader()
-env = Environment(task, grader, max_steps=100)
-
-state = env.reset()
-observation, reward, done, info = env.step(action)
-```
-
-### Tasks
-
-```python
-from tasks import EasyTask, MediumTask, HardTask
-
-task = EasyTask('task_id', 'title', 'description', initial_data)
-state = task.reset()
-state = task.step(action)
-is_complete = task.is_complete()
-```
-
-### Agents
-
-```python
-from agents import DummyAgent, HFAgent
-
-dummy = DummyAgent()
-action = dummy.act(observation)
-
-hf_agent = HFAgent('agent_1', 'gpt2', {})
-action = hf_agent.act(observation)
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For questions or issues, please open an issue on the GitHub repository.
+Access `http://localhost:7860/` to ensure the Space is running.
