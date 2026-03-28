@@ -1,6 +1,7 @@
 """Base grader class for OpenEnv."""
 from abc import ABC, abstractmethod
 from typing import Any, Dict
+from env.models import State, Action, Reward
 
 
 class BaseGrader(ABC):
@@ -11,16 +12,17 @@ class BaseGrader(ABC):
         self.scores = []
     
     @abstractmethod
-    def grade(self, state: Dict[str, Any], is_complete: bool) -> float:
+    def grade(self, state: State, action: Action, is_complete: bool) -> Reward:
         """
         Grade the current state.
         
         Args:
             state: Current environment state
+            action: The action enacted
             is_complete: Whether the task is complete
             
         Returns:
-            Reward score
+            Reward object
         """
         pass
     
