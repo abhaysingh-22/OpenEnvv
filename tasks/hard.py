@@ -1,21 +1,14 @@
-"""Hard task implementations."""
+"""Hard task: Technical Troubleshooting — requires log analysis and ERR-99 diagnosis."""
 from typing import Any, Dict
 from env.models import Observation, Action
 from .base_task import BaseTask
 
 
 class HardTask(BaseTask):
-    """
-    Hard difficulty task: Technical Troubleshooting.
-    
-    Requires 3 steps minimum:
-    1. Request logs to investigate
-    2. Provide solution with explanation
-    3. Optional: Close ticket
-    """
-    
-    def __init__(self, task_id: str = "hard_ticket_1", title: str = "Technical Error", description: str = "API returning 500", initial_data: Dict[str, Any] = None):
-        """Initialize a hard task."""
+    """Customer reports API 500 error. Agent must request logs, diagnose ERR-99, prescribe v2.1 update."""
+
+    def __init__(self, task_id="hard_ticket_1", title="Technical Error",
+                 description="API returning 500", initial_data: Dict[str, Any] = None):
         super().__init__(task_id, title, description)
         self.completed = False
         self.history = []
@@ -32,14 +25,13 @@ class HardTask(BaseTask):
             system_data={
                 "known_issues": {
                     "ERR-99": "Fix: Update client to v2.1",
-                    "ERR-42": "Fix: Clear cache"
+                    "ERR-42": "Fix: Clear cache",
                 },
-                "error_code": "ERR-99"
-            }
+                "error_code": "ERR-99",
+            },
         )
-    
+
     def reset(self) -> Observation:
-        """Reset the task to initial state."""
         self.completed = False
         self.history = []
         self.step_count = 0
@@ -47,30 +39,21 @@ class HardTask(BaseTask):
         self.solution_provided = False
         self.state = self.initial_obs.model_copy(deep=True)
         return self.state
-    
+
     def step(self, action: Action) -> Observation:
-        """
-        Execute one step of the task.
-        
-        Step 1: Should request logs
-        Step 2: Should provide solution
-        Step 3+: Optional closure
-        """
         if self.state is None:
             self.reset()
-        
+
         self.step_count += 1
         self.history.append({"agent": action.model_dump()})
-        
+
         if self.step_count == 1:
-            # First step: should request logs
             if action.tool_name == "request_logs":
                 self.logs_requested = True
                 self.history.append({
                     "system": "Logs Retrieved:\n[ERROR] Connection refused at 2026-03-27 14:32:15\nCode: ERR-99\nClient Version: v2.0.5"
                 })
             elif action.tool_name == "reply_to_customer":
-                # Responding without investigation (suboptimal)
                 content = str(action.tool_args.get("content", "")).lower()
                 if "update client to v2.1" in content or "v2.1" in content:
                     self.solution_provided = True
@@ -79,9 +62,8 @@ class HardTask(BaseTask):
                     self.history.append({"user": "That doesn't make sense. Can you be more specific?"})
             else:
                 self.history.append({"system": f"Acknowledged action: {action.tool_name}"})
-        
+
         elif self.step_count >= 2:
-            # Step 2+: should provide solution
             if action.tool_name == "reply_to_customer":
                 content = str(action.tool_args.get("content", "")).lower()
                 if "update client to v2.1" in content or "v2.1" in content:
@@ -94,7 +76,6 @@ class HardTask(BaseTask):
                         self.history.append({
                             "user": "Let me try that... actually, it's working now but I'm not sure why your suggestion helped."
                         })
-                    # Auto-complete if solution provided
                     if self.step_count >= 2:
                         self.completed = True
                 else:
@@ -115,14 +96,12 @@ class HardTask(BaseTask):
                     self.history.append({"system": "Cannot close - solution not yet provided."})
             else:
                 self.history.append({"system": f"Acknowledged action: {action.tool_name}"})
-        
-        # Update history in state
-        if not hasattr(self.state, 'history'):
+
+        if not hasattr(self.state, "history"):
             self.state.history = []
         self.state.history.extend(self.history[-2:])
-        
+
         return self.state
-    
+
     def is_complete(self) -> bool:
-        """Check if the task has been completed successfully."""
         return self.completed
