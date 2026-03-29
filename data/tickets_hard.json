@@ -1,0 +1,23 @@
+[
+  {
+    "id": "TICKET_201",
+    "title": "Complex Data Sync Issue",
+    "description": "User reporting data inconsistency across multiple accounts",
+    "difficulty": "hard",
+    "expected_response": "Diagnose issue, provide technical solution or escalate"
+  },
+  {
+    "id": "TICKET_202",
+    "title": "Custom Workflow Implementation",
+    "description": "User needs custom workflow for complex business logic",
+    "difficulty": "hard",
+    "expected_response": "Analyze requirements and provide implementation guidance"
+  },
+  {
+    "id": "TICKET_203",
+    "title": "Migration from Legacy System",
+    "description": "User needs guidance on migrating from old system",
+    "difficulty": "hard",
+    "expected_response": "Create migration plan and technical specifications"
+  }
+]

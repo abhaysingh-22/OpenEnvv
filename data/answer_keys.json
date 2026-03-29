@@ -1,0 +1,32 @@
+{
+  "TICKET_001": {
+    "category": "account_recovery",
+    "keywords": ["password", "reset", "link", "email"],
+    "min_similarity": 0.7
+  },
+  "TICKET_002": {
+    "category": "onboarding",
+    "keywords": ["signup", "account", "create", "register"],
+    "min_similarity": 0.7
+  },
+  "TICKET_003": {
+    "category": "billing",
+    "keywords": ["price", "cost", "subscription", "plan"],
+    "min_similarity": 0.7
+  },
+  "TICKET_101": {
+    "category": "feature_request",
+    "keywords": ["export", "csv", "data", "download"],
+    "min_similarity": 0.65
+  },
+  "TICKET_102": {
+    "category": "integration",
+    "keywords": ["zapier", "integration", "api", "automation"],
+    "min_similarity": 0.65
+  },
+  "TICKET_103": {
+    "category": "technical",
+    "keywords": ["rate", "limit", "api", "throttle"],
+    "min_similarity": 0.65
+  }
+}

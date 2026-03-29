@@ -1,0 +1,23 @@
+[
+  {
+    "id": "TICKET_001",
+    "title": "Password Reset Request",
+    "description": "User cannot access account",
+    "difficulty": "easy",
+    "expected_response": "Send password reset link"
+  },
+  {
+    "id": "TICKET_002",
+    "title": "Account Creation Help",
+    "description": "User needs help creating account",
+    "difficulty": "easy",
+    "expected_response": "Provide signup link and instructions"
+  },
+  {
+    "id": "TICKET_003",
+    "title": "Billing Question",
+    "description": "User asking about subscription cost",
+    "difficulty": "easy",
+    "expected_response": "Provide pricing information"
+  }
+]

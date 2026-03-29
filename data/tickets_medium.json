@@ -1,0 +1,23 @@
+[
+  {
+    "id": "TICKET_101",
+    "title": "Feature Request - Export to CSV",
+    "description": "User wants to export data to CSV format",
+    "difficulty": "medium",
+    "expected_response": "Acknowledge request and provide workaround or timeline"
+  },
+  {
+    "id": "TICKET_102",
+    "title": "Integration with Zapier",
+    "description": "User asking about Zapier integration availability",
+    "difficulty": "medium",
+    "expected_response": "Explain current integrations and workarounds"
+  },
+  {
+    "id": "TICKET_103",
+    "title": "API Rate Limiting",
+    "description": "User getting rate limit errors",
+    "difficulty": "medium",
+    "expected_response": "Explain rate limits and suggest optimization"
+  }
+]
