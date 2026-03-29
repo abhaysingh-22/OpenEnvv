@@ -1,0 +1,40 @@
+# Navigate to project
+cd /Users/abhaysingh22_/Developer/OpenEnv
+source .venv/bin/activate
+
+# 1. Run all unit tests (should be 15/15 passed)
+PYTHONPATH=. python -m pytest tests/ -v
+
+# 2. Run inference (tests all 3 tasks with real LLM)
+PYTHONPATH=. python inference.py
+
+# 3. Start the server
+PYTHONPATH=. python app.py
+
+
+
+# Health check
+curl http://localhost:7860/
+curl http://localhost:7860/health
+
+# Reset (GET — for HF Spaces ping)
+curl http://localhost:7860/reset
+
+# Full episode via API:
+# Step 1: Start an easy task
+curl -X POST http://localhost:7860/reset \
+  -H "Content-Type: application/json" \
+  -d '{"task_id": "easy_ticket_1"}'
+
+# Step 2: Send password reset
+curl -X POST http://localhost:7860/step \
+  -H "Content-Type: application/json" \
+  -d '{"tool_name": "send_password_reset", "tool_args": {"email": "john@example.com"}}'
+
+# Step 3: Close ticket
+curl -X POST http://localhost:7860/step \
+  -H "Content-Type: application/json" \
+  -d '{"tool_name": "close_ticket", "tool_args": {}}'
+
+# Check state
+curl http://localhost:7860/state
