@@ -50,10 +50,6 @@ htmlcov/
 logs/
 *.log
 
-# Data files (large datasets)
-data/tickets_*.json
-data/answer_keys.json
-
 # Model files
 models/
 pretrained/
