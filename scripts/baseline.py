@@ -1,7 +1,7 @@
-"""Baseline script for running OpenEnv with OpenAI API (gpt-4o-mini).
+"""Baseline script for running OpenEnv with OpenAI API (gpt-4.1-mini).
 
 This script demonstrates agent performance on customer support tasks using:
-1. OpenAI API (gpt-4o-mini) if OPENAI_API_KEY is available
+1. OpenAI API (gpt-4.1-mini) if OPENAI_API_KEY is available
 2. Fallback mock agent with scripted perfect actions
 
 The agent follows SKILLS.md instruction set for decision making.
@@ -42,7 +42,7 @@ from graders.support_grader import SupportGrader
 
 
 def get_agent_action(client, obs_dict, history, task_id=None, step_count=1):
-    """Inference using OpenAI gpt-4o-mini with SKILLS.md instructions.
+    """Inference using OpenAI gpt-4.1-mini with SKILLS.md instructions.
     
     Validates JSON output and falls back to safe default if parsing fails.
     """
@@ -159,7 +159,7 @@ REMEMBER: Zero tolerance for errors. Think completely before responding.
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=messages,
             temperature=0.0,
             max_tokens=500
@@ -236,7 +236,7 @@ def get_mock_action(task_id: str, step_num: int) -> Action:
 def run_baseline():
     """Run baseline evaluation with SKILLS.md-informed agents.
     
-    Uses OpenAI API (gpt-4o-mini) if available, falls back to scripted perfect agent.
+    Uses OpenAI API (gpt-4.1-mini) if available, falls back to scripted perfect agent.
     """
     api_key = os.getenv("OPENAI_API_KEY")
     client = None
@@ -247,7 +247,7 @@ def run_baseline():
         try:
             client = OpenAI(api_key=api_key)
             use_api = True
-            print("✓ OpenAI API initialized (gpt-4o-mini)")
+            print("✓ OpenAI API initialized (gpt-4.1-mini)")
         except Exception as e:
             print(f"✗ OpenAI API initialization failed: {e}")
             print("✓ Falling back to MOCK mode with scripted perfect actions")
@@ -280,7 +280,7 @@ def run_baseline():
         cumulative_reward = 0.0
         step_rewards = []
         step_count = 0
-        agent_mode = "API (gpt-4o-mini)" if use_api else "MOCK (Scripted Perfect)"
+        agent_mode = "API (gpt-4.1-mini)" if use_api else "MOCK (Scripted Perfect)"
         
         for step in range(10):
             step_count += 1
@@ -338,7 +338,7 @@ def run_baseline():
     print(f"BASELINE EVALUATION SUMMARY")
     print(f"{'='*80}")
     print(f"Agent Type: {agent_mode}")
-    print(f"Model: gpt-4o-mini" if use_api else "Model: Scripted Perfect Agent")
+    print(f"Model: gpt-4.1-mini" if use_api else "Model: Scripted Perfect Agent")
     print(f"SKILLS.md Instructions: {'ACTIVE' if use_api else 'N/A (Mock)'}")
     print()
     
