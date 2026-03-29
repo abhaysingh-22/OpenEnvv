@@ -1,20 +1,14 @@
-"""Easy task implementations."""
+"""Easy task: Password Reset — 2 steps (send reset, close ticket)."""
 from typing import Any, Dict
 from env.models import Observation, Action
 from .base_task import BaseTask
 
 
 class EasyTask(BaseTask):
-    """
-    Easy difficulty task: Password Reset.
-    
-    Requires 2 steps minimum:
-    1. Send password reset link
-    2. Verify/Close ticket
-    """
-    
-    def __init__(self, task_id: str = "easy_ticket_1", title: str = "Password Reset Request", description: str = "User forgot password", initial_data: Dict[str, Any] = None):
-        """Initialize an easy task."""
+    """User forgot password → agent sends reset link → closes ticket."""
+
+    def __init__(self, task_id="easy_ticket_1", title="Password Reset Request",
+                 description="User forgot password", initial_data: Dict[str, Any] = None):
         super().__init__(task_id, title, description)
         self.completed = False
         self.history = []
@@ -27,33 +21,25 @@ class EasyTask(BaseTask):
             subject="Cannot login, forgot password",
             body="Hi support, I forgot my password and cannot access my account. Please help.",
             history=[],
-            system_data={"account_status": "active"}
+            system_data={"account_status": "active"},
         )
-    
+
     def reset(self) -> Observation:
-        """Reset the task to initial state."""
         self.completed = False
         self.history = []
         self.reset_sent = False
         self.step_count = 0
         self.state = self.initial_obs.model_copy(deep=True)
         return self.state
-    
+
     def step(self, action: Action) -> Observation:
-        """
-        Execute one step of the task.
-        
-        Step 1: Should send password reset
-        Step 2+: Should close or verify
-        """
         if self.state is None:
             self.reset()
-        
+
         self.step_count += 1
         self.history.append({"agent": action.model_dump()})
-        
+
         if self.step_count == 1:
-            # First step: expect password reset
             if action.tool_name == "send_password_reset" and action.tool_args.get("email") == "john@example.com":
                 self.reset_sent = True
                 self.history.append({"user": "Thanks, I received the password reset link. Let me try logging in."})
@@ -63,9 +49,8 @@ class EasyTask(BaseTask):
                 self.history.append({"system": "Cannot close without addressing issue."})
             else:
                 self.history.append({"system": f"Acknowledged action: {action.tool_name}"})
-        
+
         elif self.step_count >= 2:
-            # Step 2+: expect closure or verification
             if action.tool_name == "close_ticket":
                 if self.reset_sent:
                     self.completed = True
@@ -78,14 +63,12 @@ class EasyTask(BaseTask):
                 self.history.append({"user": "Did you verify the reset link worked?"})
             else:
                 self.history.append({"system": f"Acknowledged action: {action.tool_name}"})
-        
-        # Update history in state
-        if not hasattr(self.state, 'history'):
+
+        if not hasattr(self.state, "history"):
             self.state.history = []
         self.state.history.extend(self.history[-2:])
-        
+
         return self.state
-    
+
     def is_complete(self) -> bool:
-        """Check if the task has been completed successfully."""
         return self.completed
