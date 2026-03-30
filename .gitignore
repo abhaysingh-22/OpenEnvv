@@ -53,3 +53,4 @@ logs/
 # Model files
 models/
 pretrained/
+.venv/
