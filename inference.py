@@ -324,11 +324,18 @@ def run_phase1():
 def run_phase2(client, use_api):
     """Phase 2: LLM or perfect-fallback agent evaluation."""
     model_name = os.getenv("MODEL_NAME", "gpt-4.1-mini")
-    mode_label = f"LLM Agent ({model_name})" if use_api else "Scripted Agent (fallback)"
+
+    if use_api:
+        mode_label = f"LLM Agent ({model_name})"
+    else:
+        mode_label = "Fallback Agent (Scripted)"
 
     print("══════════════════════════════════════════════════════════════════════")
     print(f"  PHASE 2 · {mode_label} + SKILLS.md")
-    print("══════════════════════════════════════════════════════════════════════\n")
+    print("══════════════════════════════════════════════════════════════════════")
+    if not use_api:
+        print("  ⚠️  NOTE: OPENAI_API_KEY not found. Running deterministic scripted agent.")
+    print()
 
     perfect = PerfectAgent()
     llm_results = {}
@@ -385,8 +392,12 @@ def run_phase2(client, use_api):
     avg = sum(scores) / len(scores)
     total = sum(scores)
 
+    summary_title = "LLM AGENT SUMMARY" if use_api else "FALLBACK AGENT SUMMARY (No API Key)"
     print("  ┌──────────────────────────────────────────────────────────────────┐")
-    print("  │  LLM AGENT SUMMARY                                              │")
+    print(f"  │  {summary_title:63s}│")
+    if not use_api:
+        print("  │  NOTE: OPENAI_API_KEY not found. Running deterministic         │")
+        print("  │        scripted agent.                                          │")
     print("  │                                                                  │")
     print(f"  │  Total Score:   {total:.3f} / 3.000                                  │")
     print(f"  │  Average:       {avg:.3f}                                            │")
@@ -435,6 +446,10 @@ def run_inference():
         except Exception:
             pass
 
+    if not use_api:
+        print("  ⚠️  WARNING: No OpenAI API key found.")
+        print("  ➜  Falling back to scripted deterministic agent.\n")
+
     llm_results, total_time = run_phase2(client, use_api)
 
     # Final comparison
@@ -452,15 +467,21 @@ def run_inference():
     print("   FINAL EVALUATION REPORT")
     print("══════════════════════════════════════════════════════════════════════\n")
 
+    agent_label = "🤖 LLM Agent" if use_api else "🤖 Fallback Agent"
+    comparison_note = (
+        "(matches optimal)" if abs(llm_avg - perf_avg) < 0.01 else
+        f"(vs Perfect: {'+' if llm_avg >= perf_avg else ''}{llm_avg - perf_avg:.3f})"
+    )
+
     print(f"  Agent Comparison:")
     print(f"    🟢 Perfect (baseline)  │ {perf_avg:.3f}")
-    print(f"    🤖 LLM Agent           │ {llm_avg:.3f}  " +
-          (f"(matches optimal)" if abs(llm_avg - perf_avg) < 0.01 else
-           f"(vs Perfect: {'+' if llm_avg >= perf_avg else ''}{llm_avg - perf_avg:.3f})"))
-    print(f"    🟡 Imperfect           │ {imperf_avg:.3f}  "
-          f"(LLM is {((llm_avg - imperf_avg) / imperf_avg * 100):.0f}% better)" if imperf_avg > 0 else "")
-    print(f"    🔴 Random              │ {rand_avg:.3f}  "
-          f"(LLM is {llm_avg / rand_avg:.1f}x better)" if rand_avg > 0 else "")
+    print(f"    {agent_label:22s} │ {llm_avg:.3f}  {comparison_note}")
+    if imperf_avg > 0:
+        print(f"    🟡 Imperfect           │ {imperf_avg:.3f}  "
+              f"({agent_label.split()[-1]} is {((llm_avg - imperf_avg) / imperf_avg * 100):.0f}% better)")
+    if rand_avg > 0:
+        print(f"    🔴 Random              │ {rand_avg:.3f}  "
+              f"({agent_label.split()[-1]} is {llm_avg / rand_avg:.1f}x better)")
 
     print(f"\n  System Checks:")
     print(f"    ✅ All {len(TASK_CONFIGS)} tasks completed without errors")
