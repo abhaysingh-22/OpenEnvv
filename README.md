@@ -21,6 +21,8 @@ This environment is structured around the OpenEnv spec (`step()`, `reset()`, `st
 - **Realistic reward signals** with partial progress tracking
 - **Tool-based action interface** (similar to ReAct/function calling)
 - **Policy-aware evaluation** (e.g., 30-day refund policy enforcement)
+- **Multi-agent evaluation** (Perfect / Imperfect / Random baselines + LLM)
+- **Graceful fallback** — runs without an API key using scripted agents
 
 ## Tasks & Difficulty Levels
 
@@ -29,36 +31,35 @@ Each task represents a realistic customer support scenario with increasing reaso
 ### Easy: Password Reset Request ⭐
 **Objective:** Identify the user and initiate a password reset.
 
-- User initializes with email
 - Agent sends reset link via `send_password_reset` tool
 - Agent closes ticket via `close_ticket` tool
-- Expected score if completed correctly: **1.0**
+- Perfect agent score: **0.923**
 
 ### Medium: Refund Request Processing ⭐⭐
 **Objective:** Evaluate refund eligibility based on company policy and process accordingly.
 
-- User requests refund for a past purchase
+- User requests refund for a past purchase (45 days ago → **outside** 30-day policy)
 - Agent must check purchase date against the **30-day refund policy**
-  - Within 30 days → approve refund via `issue_refund`
-  - After 30 days → deny refund and explain policy
-- Agent replies to customer with decision
-- Expected score if completed correctly: **1.0**
+- Agent replies to customer with denial explaining policy
+- Perfect agent score: **0.839**
 
 ### Hard: Technical Troubleshooting ⭐⭐⭐
 **Objective:** Diagnose and resolve a technical issue through multi-step investigation.
 
 - User reports a technical error (API 500)
-- Agent must request system logs via `request_logs` tool
-- Agent receives error code (ERR-99) from logs
-- Agent must match error code to known fix (update client to v2.1)
+- Agent requests system logs via `request_logs` tool
+- Agent identifies error code ERR-99 → fix is update client to v2.1
 - Agent provides correct resolution via `reply_to_customer`
-- Expected score if completed correctly: **1.0**
+- Agent closes the ticket
+- Perfect agent score: **0.769**
 
 ### Grading System
-Each task has a **deterministic grader** that:
-- Awards partial credit for intermediate steps
-- Penalizes policy violations and repeated actions
-- Provides **0.0–1.0 scores** with meaningful differentiation
+Each task has a **deterministic grader** with per-task normalization:
+- Awards partial credit for intermediate steps (+0.3 to +0.9)
+- Penalizes policy violations (-0.5) and repeated actions (-0.3)
+- Extra step penalty (-0.1 per step beyond minimum)
+- Scores are **normalized per task difficulty** so harder tasks produce naturally lower maximum scores
+- Final scores ∈ [0.0, 1.0]
 
 ## Observation & Action Spaces (Pydantic Typed)
 
@@ -103,13 +104,13 @@ Each task has a **deterministic grader** that:
 
 ```python
 {
-    "value": 0.75,
+    "value": 0.692,
     "is_complete": false,
     "info": "Sent password reset (+0.9)"
 }
 ```
 
-**Reward structure:** Partial rewards at each step (0.3–0.9), penalties for wrong/repeated actions (-0.3 to -0.5), normalized final score ∈ [0.0, 1.0].
+**Reward structure:** Partial rewards at each step (0.3–0.9), penalties for wrong/repeated actions (-0.3 to -0.5), per-task normalization for difficulty scaling, final score ∈ [0.0, 1.0].
 
 ## Setup Instructions
 
@@ -140,11 +141,13 @@ pip install -r requirements.txt
 #### 4. Configure Environment Variables
 Create a `.env` file in the root directory:
 ```bash
-OPENAI_API_KEY=sk-your-api-key-here
-MODEL_NAME=gpt-4.1-mini
-API_BASE_URL=                           # optional custom endpoint
-HF_TOKEN=hf_your-token-here            # optional for HF Spaces
+OPENAI_API_KEY=sk-your-api-key-here     # required for LLM mode
+MODEL_NAME=gpt-4.1-mini                 # model to use
+API_BASE_URL=                            # optional custom endpoint
+HF_TOKEN=hf_your-token-here             # optional for HF Spaces
 ```
+
+> **Note:** If `OPENAI_API_KEY` is not set, the system automatically falls back to a deterministic scripted agent with a clear warning message.
 
 ### Running the Environment
 
@@ -154,26 +157,51 @@ python app.py
 # Server starts on http://localhost:7860
 ```
 
-#### Run the Baseline Inference Script
+#### Run the Inference Script
 ```bash
 python inference.py
 ```
 
+This runs a comprehensive two-phase evaluation:
+- **Phase 1** — Multi-agent baseline (Perfect / Imperfect / Random agents)
+- **Phase 2** — LLM agent (or scripted fallback if no API key)
+
 #### Run Unit Tests
 ```bash
 pytest tests/ -v
+# Expected: 15 passed
 ```
 
-### Baseline Scores
+### Docker
 
-| Task | Difficulty | Expected Score |
-|:-----|:----------:|:-------------:|
-| Password Reset | Easy ⭐ | 1.000 |
-| Refund Request | Medium ⭐⭐ | 1.000 |
-| Tech Support | Hard ⭐⭐⭐ | 1.000 |
-| **Average** | - | **1.000** |
+#### Build
+```bash
+docker build -t openenv .
+```
 
-Runtime: ~3-4 seconds total (well under the 20-minute limit).
+#### Run
+```bash
+docker run -p 7860:7860 \
+  -e OPENAI_API_KEY=sk-your-key \
+  -e MODEL_NAME=gpt-4.1-mini \
+  -e HF_TOKEN=hf_your-token \
+  openenv
+```
+
+### Baseline Scores (Multi-Agent)
+
+| Agent | Easy ⭐ | Medium ⭐⭐ | Hard ⭐⭐⭐ | Average |
+|:------|:------:|:---------:|:--------:|:-------:|
+| 🟢 Perfect | 0.923 | 0.839 | 0.769 | 0.844 |
+| 🟡 Imperfect | 0.615 | 0.581 | 0.385 | 0.527 |
+| 🔴 Random | 0.123 | 0.000 | 0.000 | 0.041 |
+
+**Key properties:**
+- ✅ Clear agent differentiation (Perfect >> Imperfect >> Random)
+- ✅ Difficulty scaling (Easy > Medium > Hard)
+- ✅ Scores are not all 1.0 or all 0.0 — realistic distribution
+
+Runtime: ~10-16 seconds total with LLM (well under the 20-minute limit).
 
 ## API Endpoints
 
@@ -213,7 +241,7 @@ Environment metadata and available endpoints.
 ```
 OpenEnv/
 ├── app.py                  # FastAPI server (port 7860)
-├── inference.py            # Baseline inference script
+├── inference.py            # Multi-agent evaluation script
 ├── Dockerfile              # Container definition
 ├── openenv.yaml            # OpenEnv metadata spec
 ├── requirements.txt        # Python dependencies
@@ -222,21 +250,19 @@ OpenEnv/
 │
 ├── env/                    # Core environment module
 │   ├── __init__.py
-│   ├── environment.py      # Main Environment class (step/reset/state)
+│   ├── environment.py      # Environment class (step/reset/state)
 │   ├── models.py           # Pydantic models (Observation, Action, Reward)
 │   └── constants.py        # Configuration constants
 │
 ├── tasks/                  # Task definitions
-│   ├── __init__.py
 │   ├── base_task.py        # Abstract task base class
 │   ├── easy.py             # Easy: password reset
 │   ├── medium.py           # Medium: refund request
 │   └── hard.py             # Hard: technical troubleshooting
 │
-├── graders/                # Reward/grading logic
-│   ├── __init__.py
+├── graders/                # Reward / grading logic
 │   ├── base_grader.py      # Abstract grader base class
-│   ├── support_grader.py   # Deterministic grader implementation
+│   ├── support_grader.py   # Deterministic grader (per-task normalization)
 │   └── rewards.py          # Reward accumulator
 │
 ├── data/                   # Static data files
@@ -250,7 +276,7 @@ OpenEnv/
 ├── skills/                 # Agent instruction document
 │   └── SKILLS.md           # Comprehensive agent guidelines
 │
-├── tests/                  # Test suite
+├── tests/                  # Test suite (15 tests)
 │   ├── conftest.py
 │   ├── test_environment.py
 │   ├── test_graders.py
@@ -267,10 +293,12 @@ OpenEnv/
 - ✅ **Typed Models:** Pydantic `Observation`, `Action`, `Reward`
 - ✅ **Core Functions:** `step()`, `reset()`, `state()`
 - ✅ **YAML Metadata:** `openenv.yaml`
-- ✅ **Task Graders:** Deterministic scoring (0.0–1.0)
+- ✅ **Task Graders:** Deterministic scoring (0.0–1.0) with per-task normalization
 - ✅ **Environment Variables:** `OPENAI_API_KEY`, `MODEL_NAME`, `API_BASE_URL`, `HF_TOKEN`
 - ✅ **Reproducible Baseline:** `inference.py` produces consistent scores
 - ✅ **Skills Integration:** `SKILLS.md` loaded and injected into LLM prompts
+- ✅ **Graceful Fallback:** Runs without API key with warning + scripted agent
+- ✅ **Multi-Agent Evaluation:** Perfect / Imperfect / Random baselines for meaningful comparison
 
 ## License
 
