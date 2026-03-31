@@ -18,6 +18,7 @@ venv
 ENV
 env.bak
 venv.bak
+test_venv
 
 # IDE
 .vscode
@@ -32,6 +33,7 @@ venv.bak
 .coverage
 htmlcov
 .tox
+test_deps.sh
 
 # Environment files
 .env
@@ -53,3 +55,7 @@ docker-compose*.yml
 
 # Docs
 README.md
+openenv.md
+rules.md
+OpenEnv-main
+uv.lock
