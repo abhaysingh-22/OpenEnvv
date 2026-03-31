@@ -36,12 +36,8 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
-from env.environment import Environment
-from env.models import Action
-from tasks.easy import EasyTask
-from tasks.medium import MediumTask
-from tasks.hard import HardTask
-from graders.support_grader import SupportGrader
+from support_env.server.support_environment import SupportEnvironment
+from support_env.models import SupportAction as Action
 
 
 # ─── SKILLS.MD Integration ────────────────────────────────────────
@@ -228,19 +224,16 @@ def get_llm_action(client, obs_dict, history, task_id=None, step_count=1):
 # ═══════════════════════════════════════════════════════════════════
 
 TASK_CONFIGS = [
-    ("easy_ticket_1", EasyTask, "Password Reset Request", "Easy ⭐"),
-    ("medium_ticket_1", MediumTask, "Refund Request", "Medium ⭐⭐"),
-    ("hard_ticket_1", HardTask, "Technical Error", "Hard ⭐⭐⭐"),
+    ("easy_ticket_1", "Password Reset Request", "Easy ⭐"),
+    ("medium_ticket_1", "Refund Request", "Medium ⭐⭐"),
+    ("hard_ticket_1", "Technical Error", "Hard ⭐⭐⭐"),
 ]
 
 
-def run_episode(task_cls, grader_cls, agent, task_id, max_steps=10):
+def run_episode(agent, task_id, max_steps=10):
     """Run a single episode and return (score, steps, done)."""
-    task = task_cls()
-    grader = grader_cls()
-    grader.reset_episode()
-    env = Environment(task, grader, max_steps=max_steps)
-    env.reset()
+    env = SupportEnvironment()
+    env.reset(task_id=task_id)
 
     final_score = 0.0
     steps_taken = 0
@@ -249,11 +242,14 @@ def run_episode(task_cls, grader_cls, agent, task_id, max_steps=10):
     for step in range(max_steps):
         step_num = step + 1
         action = agent.act(task_id, step_num)
-        obs, reward, done, info = env.step(action)
-        final_score = reward.value
+        obs = env.step(action)
+        reward_val = obs.reward if obs.reward is not None else 0.0
+        info_str = obs.metadata.get("info", "")
+        
+        final_score = reward_val
         steps_taken = step_num
-        step_details.append((action.tool_name, reward.value, reward.info))
-        if done:
+        step_details.append((action.tool_name, reward_val, info_str))
+        if obs.done:
             break
 
     return final_score, steps_taken, step_details
@@ -268,7 +264,7 @@ def run_phase1():
     agents = [PerfectAgent(), ImperfectAgent(), RandomAgent(seed=42)]
     results = {}
 
-    for task_id, task_cls, task_name, difficulty in TASK_CONFIGS:
+    for task_id, task_name, difficulty in TASK_CONFIGS:
         print(f"  [{task_id}] {task_name}  {difficulty}")
         print(f"  {'─' * 66}")
 
@@ -277,14 +273,14 @@ def run_phase1():
                 scores, steps_list = [], []
                 for ep in range(5):
                     agent_ep = RandomAgent(seed=42 + ep)
-                    sc, st, _ = run_episode(task_cls, SupportGrader, agent_ep, task_id)
+                    sc, st, _ = run_episode(agent_ep, task_id)
                     scores.append(sc)
                     steps_list.append(st)
                 score = sum(scores) / len(scores)
                 steps = sum(steps_list) / len(steps_list)
                 note = f"avg of 5 episodes (range: {min(scores):.3f}–{max(scores):.3f})"
             else:
-                score, steps, details = run_episode(task_cls, SupportGrader, agent, task_id)
+                score, steps, details = run_episode(agent, task_id)
                 note = details[-1][2] if details else ""
 
             key = (agent.name, task_id)
@@ -303,12 +299,12 @@ def run_phase1():
     print("  │  ─────────────┼─────────┼─────────┼─────────┼────────            │")
 
     for agent in agents:
-        scores = [results.get((agent.name, tid), 0) for tid, _, _, _ in TASK_CONFIGS]
+        scores = [results.get((agent.name, tid), 0) for tid, _, _ in TASK_CONFIGS]
         avg = sum(scores) / len(scores)
         print(f"  │  {agent.icon} {agent.name:10s} │  {scores[0]:.3f}  │  {scores[1]:.3f}  │  {scores[2]:.3f}  │  {avg:.3f}              │")
 
-    perf_avg = sum(results.get(("Perfect", tid), 0) for tid, _, _, _ in TASK_CONFIGS) / 3
-    rand_avg = sum(results.get(("Random", tid), 0) for tid, _, _, _ in TASK_CONFIGS) / 3
+    perf_avg = sum(results.get(("Perfect", tid), 0) for tid, _, _ in TASK_CONFIGS) / 3
+    rand_avg = sum(results.get(("Random", tid), 0) for tid, _, _ in TASK_CONFIGS) / 3
     all_scores = list(results.values())
 
     print("  │                                                                  │")
@@ -341,15 +337,12 @@ def run_phase2(client, use_api):
     llm_results = {}
     total_time = 0.0
 
-    for task_id, task_cls, task_name, difficulty in TASK_CONFIGS:
+    for task_id, task_name, difficulty in TASK_CONFIGS:
         print(f"  [{task_id}] {task_name}  {difficulty}")
         print(f"  {'─' * 66}")
 
-        task = task_cls()
-        grader = SupportGrader()
-        grader.reset_episode()
-        env = Environment(task, grader, max_steps=10)
-        obs = env.reset()
+        env = SupportEnvironment()
+        obs = env.reset(task_id=task_id)
 
         agent_mode = "LLM" if use_api else "scripted"
         start = time.time()
@@ -368,14 +361,16 @@ def run_phase2(client, use_api):
                     agent_mode = "scripted (LLM fallback)"
 
             args_str = json.dumps(action.tool_args) if action.tool_args else ""
-            obs, reward, done, info = env.step(action)
-            step_scores.append(reward.value)
+            obs = env.step(action)
+            reward_val = obs.reward if obs.reward is not None else 0.0
+            info_str = obs.metadata.get("info", "")
+            step_scores.append(reward_val)
 
             print(f"    Step {step_num}: {action.tool_name}" +
                   (f"({args_str})" if args_str and len(args_str) < 60 else "") +
-                  f"  → {reward.value:.3f}  {reward.info}")
+                  f"  → {reward_val:.3f}  {info_str}")
 
-            if done:
+            if obs.done:
                 break
 
         elapsed = time.time() - start
@@ -404,7 +399,7 @@ def run_phase2(client, use_api):
     print(f"  │  Total Time:    {total_time:.2f}s                                          │")
     print("  │                                                                  │")
     print("  │  Difficulty Scaling:                                             │")
-    for (tid, _, _, diff), sc in zip(TASK_CONFIGS, scores):
+    for (tid, _, diff), sc in zip(TASK_CONFIGS, scores):
         print(f"  │    {diff:14s}  {sc:.3f}                                         │")
     print("  └──────────────────────────────────────────────────────────────────┘")
     print()
@@ -453,10 +448,10 @@ def run_inference():
     llm_results, total_time = run_phase2(client, use_api)
 
     # Final comparison
-    perf_scores = [baseline_results.get(("Perfect", tid), 0) for tid, _, _, _ in TASK_CONFIGS]
-    imperf_scores = [baseline_results.get(("Imperfect", tid), 0) for tid, _, _, _ in TASK_CONFIGS]
-    rand_scores = [baseline_results.get(("Random", tid), 0) for tid, _, _, _ in TASK_CONFIGS]
-    llm_scores = [llm_results[tid]["score"] for tid, _, _, _ in TASK_CONFIGS]
+    perf_scores = [baseline_results.get(("Perfect", tid), 0) for tid, _, _ in TASK_CONFIGS]
+    imperf_scores = [baseline_results.get(("Imperfect", tid), 0) for tid, _, _ in TASK_CONFIGS]
+    rand_scores = [baseline_results.get(("Random", tid), 0) for tid, _, _ in TASK_CONFIGS]
+    llm_scores = [llm_results[tid]["score"] for tid, _, _ in TASK_CONFIGS]
 
     perf_avg = sum(perf_scores) / 3
     imperf_avg = sum(imperf_scores) / 3
