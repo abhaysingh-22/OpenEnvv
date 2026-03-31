@@ -56,7 +56,6 @@ models/
 pretrained/
 
 # Build artifacts
-uv.lock
 
 # Reference docs (not part of the project)
 OpenEnv-main/
