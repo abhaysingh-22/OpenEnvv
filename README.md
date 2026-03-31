@@ -1,305 +1,67 @@
-# OpenEnv: Customer Support Ticket Environment
+# Customer Support Ticket Environment (OpenEnv)
 
-A production-ready **OpenEnv implementation** for customer support ticket resolution. This environment simulates a real-world support operation where AI agents learn to triage, prioritize, and resolve customer tickets using domain-specific tools.
+A fully compliant [OpenEnv](https://github.com/meta-pytorch/OpenEnv) testbed simulating an interactive customer support helpdesk where an AI agent attempts to resolve customer issues by using tools (reply, send password reset, check logs, issue refund).
 
-## Motivation & Real-World Utility
+### Task Breakdown
 
-Customer support is a multi-billion dollar industry with high operational costs. Automating ticket handling can:
-- **Reduce response times** from hours/days to minutes
-- **Improve resolution rates** by applying consistent policies
-- **Lower operational costs** by handling routine requests automatically
-- **Enable scaling** without proportional increase in support staff
+We support 3 distinct difficulty tasks designed to push Frontier LLMs:
 
-This environment provides a realistic benchmark for evaluating agent capabilities on **multi-step reasoning**, **policy compliance**, and **customer communication**.
+1. **Easy (`easy_ticket_1`)**: Password Reset Request. The agent must verify the customer's identity and correctly send a password reset loop using `send_password_reset` to the right email, without taking destructive actions.
+2. **Medium (`medium_ticket_1`)**: Refund Request & Policy Check. The agent must successfully recognize a customer is past a 30-day refund window by requesting internal system logs `request_logs`. If the agent ignores policy and clicks `issue_refund`, it earns a massive ERROR penalty.
+3. **Hard (`hard_ticket_1`)**: API Troubleshooting. The customer reports an unknown internal 500 API error. The agent must `request_logs`, find the underlying system stack trace, diagnose the problem, and provide the exact required fix (update to v2.1) without leaking internal code names.
 
-## Environment Overview
+---
 
-This environment is structured around the OpenEnv spec (`step()`, `reset()`, `state()`). Agents interact with support tickets by selecting appropriate tools and providing arguments. The environment provides:
+### Project Structure
 
-- **Typed Pydantic models** for observations, actions, and rewards
-- **3 difficulty levels** of tasks with deterministic graders
-- **Realistic reward signals** with partial progress tracking
-- **Tool-based action interface** (similar to ReAct/function calling)
-- **Policy-aware evaluation** (e.g., 30-day refund policy enforcement)
-- **Multi-agent evaluation** (Perfect / Imperfect / Random baselines + LLM)
-- **Graceful fallback** — runs without an API key using scripted agents
+This project conforms strictly to the `meta-pytorch/OpenEnv` architecture.
 
-## Tasks & Difficulty Levels
-
-Each task represents a realistic customer support scenario with increasing reasoning requirements.
-
-### Easy: Password Reset Request ⭐
-**Objective:** Identify the user and initiate a password reset.
-
-- Agent sends reset link via `send_password_reset` tool
-- Agent closes ticket via `close_ticket` tool
-- Perfect agent score: **0.923**
-
-### Medium: Refund Request Processing ⭐⭐
-**Objective:** Evaluate refund eligibility based on company policy and process accordingly.
-
-- User requests refund for a past purchase (45 days ago → **outside** 30-day policy)
-- Agent must check purchase date against the **30-day refund policy**
-- Agent replies to customer with denial explaining policy
-- Perfect agent score: **0.839**
-
-### Hard: Technical Troubleshooting ⭐⭐⭐
-**Objective:** Diagnose and resolve a technical issue through multi-step investigation.
-
-- User reports a technical error (API 500)
-- Agent requests system logs via `request_logs` tool
-- Agent identifies error code ERR-99 → fix is update client to v2.1
-- Agent provides correct resolution via `reply_to_customer`
-- Agent closes the ticket
-- Perfect agent score: **0.769**
-
-### Grading System
-Each task has a **deterministic grader** with per-task normalization:
-- Awards partial credit for intermediate steps (+0.3 to +0.9)
-- Penalizes policy violations (-0.5) and repeated actions (-0.3)
-- Extra step penalty (-0.1 per step beyond minimum)
-- Scores are **normalized per task difficulty** so harder tasks produce naturally lower maximum scores
-- Final scores ∈ [0.0, 1.0]
-
-## Observation & Action Spaces (Pydantic Typed)
-
-### Observation Space
-
-```python
-{
-    "ticket_id": "easy_ticket_1",
-    "user_name": "John Doe",
-    "user_email": "john@example.com",
-    "subject": "Password Reset",
-    "body": "I need to reset my password",
-    "history": [
-        {"role": "customer", "content": "..."},
-        {"role": "agent", "content": "...", "tool_used": "send_password_reset"}
-    ],
-    "system_data": {
-        "purchase_date": "2024-01-15",
-        "account_status": "active",
-        "known_issues": {...}
-    }
-}
+```text
+├── support_env/                 # Core Environment Package
+│   ├── models.py                # Action, Observation, State extending openenv types
+│   ├── client.py                # EnvClient Wrapper
+│   └── server/
+│       └── support_environment.py # Encapsulated Task & Grader Logic
+├── server/                      # OpenEnv standardized entry point
+│   └── app.py                   # FastAPI create_app wrapper
+├── data/                        # Sample offline logs and references
+├── skills/                      # Instruction sets for the LLM
+├── openenv.yaml                 # OpenEnv Deployment Spec
+├── pyproject.toml               # Package Definition
+├── Dockerfile                   # Deployment container
+└── inference.py                 # Multi-Agent Baseline Inference Engine
 ```
 
-### Action Space
+### Setup & Usage
 
-```python
-{
-    "tool_name": "send_password_reset",
-    "tool_args": {"email": "john@example.com"}
-}
-```
-
-**Available Tools:**
-- `send_password_reset(email)` — Initiate password reset
-- `request_logs()` — Get system/diagnostic logs
-- `issue_refund(amount, reason)` — Process refund
-- `reply_to_customer(content)` — Send message to customer
-- `close_ticket()` — Mark ticket as resolved
-
-### Reward Space
-
-```python
-{
-    "value": 0.692,
-    "is_complete": false,
-    "info": "Sent password reset (+0.9)"
-}
-```
-
-**Reward structure:** Partial rewards at each step (0.3–0.9), penalties for wrong/repeated actions (-0.3 to -0.5), per-task normalization for difficulty scaling, final score ∈ [0.0, 1.0].
-
-## Setup Instructions
-
-### Prerequisites
-- **Python 3.10+**
-- **OpenAI API Key** (for LLM-based inference; works without it via scripted fallback)
-- **pip** for dependency management
-
-### Installation
-
-#### 1. Clone Repository
+**1. Install Dependencies**
 ```bash
-git clone https://github.com/abhaysingh-22/OpenEnvv.git
-cd OpenEnv
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e . uv 
+uv lock
+uv sync
 ```
 
-#### 2. Create Virtual Environment
+**2. Run Locally With `openenv` CLI**
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+openenv validate  # Ensure everything respects the latest framework spec!
 ```
 
-#### 3. Install Dependencies
+**3. Run Inference Benchmark**
+Tests the environment utilizing 3 local scripted agents (Perfect, Imperfect, Random) and if an API key is present, tests the `MODEL_NAME` you provide against the system.
+
 ```bash
-pip install -r requirements.txt
-```
-
-#### 4. Configure Environment Variables
-Create a `.env` file in the root directory:
-```bash
-OPENAI_API_KEY=sk-your-api-key-here     # required for LLM mode
-MODEL_NAME=gpt-4.1-mini                 # model to use
-API_BASE_URL=                            # optional custom endpoint
-HF_TOKEN=hf_your-token-here             # optional for HF Spaces
-```
-
-> **Note:** If `OPENAI_API_KEY` is not set, the system automatically falls back to a deterministic scripted agent with a clear warning message.
-
-### Running the Environment
-
-#### Start the Web Server
-```bash
-python app.py
-# Server starts on http://localhost:7860
-```
-
-#### Run the Inference Script
-```bash
+export OPENAI_API_KEY="sk-..."
+export MODEL_NAME="gpt-4o-mini"
 python inference.py
 ```
 
-This runs a comprehensive two-phase evaluation:
-- **Phase 1** — Multi-agent baseline (Perfect / Imperfect / Random agents)
-- **Phase 2** — LLM agent (or scripted fallback if no API key)
+### Docker 
 
-#### Run Unit Tests
+Built securely using `appuser` (non-root) on port 7860 to match standard Hugging Face Spaces rules.
+
 ```bash
-pytest tests/ -v
-# Expected: 15 passed
+docker build -t sst_openenv .
+docker run -p 7860:7860 sst_openenv:latest
 ```
-
-### Docker
-
-#### Build
-```bash
-docker build -t openenv .
-```
-
-#### Run
-```bash
-docker run -p 7860:7860 \
-  -e OPENAI_API_KEY=sk-your-key \
-  -e MODEL_NAME=gpt-4.1-mini \
-  -e HF_TOKEN=hf_your-token \
-  openenv
-```
-
-### Baseline Scores (Multi-Agent)
-
-| Agent | Easy ⭐ | Medium ⭐⭐ | Hard ⭐⭐⭐ | Average |
-|:------|:------:|:---------:|:--------:|:-------:|
-| 🟢 Perfect | 0.923 | 0.839 | 0.769 | 0.844 |
-| 🟡 Imperfect | 0.615 | 0.581 | 0.385 | 0.527 |
-| 🔴 Random | 0.123 | 0.000 | 0.000 | 0.041 |
-
-**Key properties:**
-- ✅ Clear agent differentiation (Perfect >> Imperfect >> Random)
-- ✅ Difficulty scaling (Easy > Medium > Hard)
-- ✅ Scores are not all 1.0 or all 0.0 — realistic distribution
-
-Runtime: ~10-16 seconds total with LLM (well under the 20-minute limit).
-
-## API Endpoints
-
-### `GET /`
-Health check. Returns 200 to confirm the server is running.
-
-### `GET /health`
-Detailed health status including credential configuration.
-
-### `GET /reset`
-Simple reset confirmation (for HF Spaces ping validation).
-
-### `POST /reset`
-Initialize a new episode for a given task.
-```bash
-curl -X POST http://localhost:7860/reset \
-  -H "Content-Type: application/json" \
-  -d '{"task_id": "easy_ticket_1"}'
-```
-
-### `POST /step`
-Execute one action and return (observation, reward, done, info).
-```bash
-curl -X POST http://localhost:7860/step \
-  -H "Content-Type: application/json" \
-  -d '{"tool_name": "send_password_reset", "tool_args": {"email": "john@example.com"}}'
-```
-
-### `GET /state`
-Return the current environment state snapshot.
-
-### `GET /info`
-Environment metadata and available endpoints.
-
-## Project Structure
-
-```
-OpenEnv/
-├── app.py                  # FastAPI server (port 7860)
-├── inference.py            # Multi-agent evaluation script
-├── Dockerfile              # Container definition
-├── openenv.yaml            # OpenEnv metadata spec
-├── requirements.txt        # Python dependencies
-├── .env.example            # Example environment config
-├── README.md               # This file
-│
-├── env/                    # Core environment module
-│   ├── __init__.py
-│   ├── environment.py      # Environment class (step/reset/state)
-│   ├── models.py           # Pydantic models (Observation, Action, Reward)
-│   └── constants.py        # Configuration constants
-│
-├── tasks/                  # Task definitions
-│   ├── base_task.py        # Abstract task base class
-│   ├── easy.py             # Easy: password reset
-│   ├── medium.py           # Medium: refund request
-│   └── hard.py             # Hard: technical troubleshooting
-│
-├── graders/                # Reward / grading logic
-│   ├── base_grader.py      # Abstract grader base class
-│   ├── support_grader.py   # Deterministic grader (per-task normalization)
-│   └── rewards.py          # Reward accumulator
-│
-├── data/                   # Static data files
-│   ├── tickets_easy.json
-│   ├── tickets_medium.json
-│   ├── tickets_hard.json
-│   ├── company_policy.json
-│   ├── answer_keys.json
-│   └── forbidden_phrases.txt
-│
-├── skills/                 # Agent instruction document
-│   └── SKILLS.md           # Comprehensive agent guidelines
-│
-├── tests/                  # Test suite (15 tests)
-│   ├── conftest.py
-│   ├── test_environment.py
-│   ├── test_graders.py
-│   ├── test_models.py
-│   └── test_rewards.py
-│
-└── scripts/                # Utility scripts
-    ├── baseline.py
-    └── validate_scoring.py
-```
-
-## OpenEnv Specification Compliance
-
-- ✅ **Typed Models:** Pydantic `Observation`, `Action`, `Reward`
-- ✅ **Core Functions:** `step()`, `reset()`, `state()`
-- ✅ **YAML Metadata:** `openenv.yaml`
-- ✅ **Task Graders:** Deterministic scoring (0.0–1.0) with per-task normalization
-- ✅ **Environment Variables:** `OPENAI_API_KEY`, `MODEL_NAME`, `API_BASE_URL`, `HF_TOKEN`
-- ✅ **Reproducible Baseline:** `inference.py` produces consistent scores
-- ✅ **Skills Integration:** `SKILLS.md` loaded and injected into LLM prompts
-- ✅ **Graceful Fallback:** Runs without API key with warning + scripted agent
-- ✅ **Multi-Agent Evaluation:** Perfect / Imperfect / Random baselines for meaningful comparison
-
-## License
-
-This project is provided as-is for educational and research purposes.
