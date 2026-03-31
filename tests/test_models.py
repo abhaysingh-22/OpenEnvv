@@ -1,53 +1,69 @@
-"""Tests for the models module."""
+"""Tests for Pydantic models."""
 import pytest
-from env.models import TaskConfig, AgentConfig, State, Observation, Action
-
-
-def test_task_creation():
-    """Test task configuration creation."""
-    task = TaskConfig(
-        id='task_1',
-        title='Test Task',
-        description='Test Description',
-        difficulty='easy'
-    )
-    assert task.id == 'task_1'
-    assert task.difficulty == 'easy'
-
-
-def test_task_invalid_difficulty():
-    """Test task with invalid difficulty."""
-    with pytest.raises(ValueError):
-        task = TaskConfig(
-            id='task_1',
-            title='Test Task',
-            description='Test Description',
-            difficulty='invalid'
-        )
-        task.validate_difficulty()
-
-
-def test_observation_creation():
-    """Test observation creation."""
-    obs = Observation(ticket_id="1", user_name="A", user_email="a@a.com", subject="S", body="B")
-    assert obs.ticket_id == "1"
-    assert obs.history == []
+from support_env.models import SupportAction, SupportObservation, SupportState
 
 
 def test_action_creation():
-    """Test action creation."""
-    act = Action(tool_name="reply", tool_args={"msg": "hi"})
-    assert act.tool_name == "reply"
-    assert act.tool_args["msg"] == "hi"
+    """Test SupportAction creation with tool_name and tool_args."""
+    action = SupportAction(tool_name="reply_to_customer", tool_args={"content": "Hello!"})
+    assert action.tool_name == "reply_to_customer"
+    assert action.tool_args["content"] == "Hello!"
+
+
+def test_action_default_args():
+    """Test SupportAction with default empty tool_args."""
+    action = SupportAction(tool_name="close_ticket")
+    assert action.tool_args == {}
+
+
+def test_observation_creation():
+    """Test SupportObservation creation with all fields."""
+    obs = SupportObservation(
+        ticket_id="TKT-001",
+        user_name="Test User",
+        user_email="test@example.com",
+        subject="Test Subject",
+        body="Test body"
+    )
+    assert obs.ticket_id == "TKT-001"
+    assert obs.user_email == "test@example.com"
+    assert obs.history == []
+    assert obs.system_data == {}
+
+
+def test_observation_with_history():
+    """Test SupportObservation with history entries."""
+    obs = SupportObservation(
+        ticket_id="TKT-001",
+        user_name="Test",
+        user_email="t@t.com",
+        subject="S",
+        body="B",
+        history=[{"agent": "some action"}, {"user": "response"}]
+    )
+    assert len(obs.history) == 2
 
 
 def test_state_creation():
-    """Test state creation."""
-    obs = Observation(ticket_id="1", user_name="A", user_email="a@a.com", subject="S", body="B")
-    state = State(
-        task_id='task_1',
-        step=1,
-        observation=obs
+    """Test SupportState creation."""
+    state = SupportState(task_id="easy_ticket_1")
+    assert state.task_id == "easy_ticket_1"
+
+
+def test_action_serialization():
+    """Test that actions can be serialized to dict."""
+    action = SupportAction(tool_name="send_password_reset", tool_args={"email": "a@b.com"})
+    d = action.model_dump()
+    assert d["tool_name"] == "send_password_reset"
+    assert d["tool_args"]["email"] == "a@b.com"
+
+
+def test_observation_serialization():
+    """Test that observations can be serialized to dict."""
+    obs = SupportObservation(
+        ticket_id="T1", user_name="U", user_email="e@e.com",
+        subject="S", body="B"
     )
-    assert state.task_id == 'task_1'
-    assert state.step == 1
+    d = obs.model_dump()
+    assert "ticket_id" in d
+    assert "user_email" in d
