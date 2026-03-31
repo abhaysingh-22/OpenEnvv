@@ -66,11 +66,23 @@ class PerfectAgent:
                 return Action(tool_name="send_password_reset", tool_args={"email": "john@example.com"})
             return Action(tool_name="close_ticket", tool_args={})
 
+        if task_id == "easy_ticket_2":
+            if step == 1:
+                return Action(tool_name="send_password_reset", tool_args={"email": "sarah.chen@example.com"})
+            return Action(tool_name="close_ticket", tool_args={})
+
         if task_id == "medium_ticket_1":
             if step == 1:
                 return Action(tool_name="request_logs", tool_args={})
             return Action(tool_name="reply_to_customer", tool_args={
                 "content": "Your purchase exceeds our 30-day refund window. We cannot process this refund."
+            })
+
+        if task_id == "medium_ticket_2":
+            if step == 1:
+                return Action(tool_name="request_logs", tool_args={})
+            return Action(tool_name="reply_to_customer", tool_args={
+                "content": "Your product is past the 90-day warranty period. We cannot approve a replacement."
             })
 
         if task_id == "hard_ticket_1":
@@ -79,6 +91,15 @@ class PerfectAgent:
             if step == 2:
                 return Action(tool_name="reply_to_customer", tool_args={
                     "content": "The logs show ERR-99. Please update your client to v2.1 to resolve this."
+                })
+            return Action(tool_name="close_ticket", tool_args={})
+
+        if task_id == "hard_ticket_2":
+            if step == 1:
+                return Action(tool_name="request_logs", tool_args={})
+            if step == 2:
+                return Action(tool_name="reply_to_customer", tool_args={
+                    "content": "The logs show ERR-42. Your cache is 98% full. Please clear cache to resolve the timeout."
                 })
             return Action(tool_name="close_ticket", tool_args={})
 
@@ -91,11 +112,12 @@ class ImperfectAgent:
     icon = "🟡"
 
     def act(self, task_id: str, step: int) -> Action:
-        if task_id == "easy_ticket_1":
+        if task_id in ("easy_ticket_1", "easy_ticket_2"):
+            email = "john@example.com" if task_id == "easy_ticket_1" else "sarah.chen@example.com"
             if step == 1:
-                return Action(tool_name="send_password_reset", tool_args={"email": "john@example.com"})
+                return Action(tool_name="send_password_reset", tool_args={"email": email})
             if step == 2:
-                return Action(tool_name="send_password_reset", tool_args={"email": "john@example.com"})
+                return Action(tool_name="send_password_reset", tool_args={"email": email})
             return Action(tool_name="close_ticket", tool_args={})
 
         if task_id == "medium_ticket_1":
@@ -109,6 +131,17 @@ class ImperfectAgent:
                 "content": "After review, we cannot issue a refund as your purchase is past the 30-day window."
             })
 
+        if task_id == "medium_ticket_2":
+            if step == 1:
+                return Action(tool_name="request_logs", tool_args={})
+            if step == 2:
+                return Action(tool_name="reply_to_customer", tool_args={
+                    "content": "We are checking your warranty status."
+                })
+            return Action(tool_name="reply_to_customer", tool_args={
+                "content": "Your warranty has expired after 90 days. We cannot approve a replacement."
+            })
+
         if task_id == "hard_ticket_1":
             if step == 1:
                 return Action(tool_name="request_logs", tool_args={})
@@ -118,6 +151,17 @@ class ImperfectAgent:
                 })
             return Action(tool_name="reply_to_customer", tool_args={
                 "content": "The error is ERR-99. Please update your client to v2.1."
+            })
+
+        if task_id == "hard_ticket_2":
+            if step == 1:
+                return Action(tool_name="request_logs", tool_args={})
+            if step == 2:
+                return Action(tool_name="reply_to_customer", tool_args={
+                    "content": "We see some errors in the logs."
+                })
+            return Action(tool_name="reply_to_customer", tool_args={
+                "content": "The error is ERR-42. Please clear cache on your end."
             })
 
         return Action(tool_name="close_ticket", tool_args={})
@@ -161,14 +205,27 @@ def get_llm_action(client, obs_dict, history, task_id=None, step_count=1):
             "TASK: Password Reset (Easy)\n"
             "WORKFLOW: Step 1 → send_password_reset(email: john@example.com), Step 2 → close_ticket"
         ),
+        "easy_ticket_2": (
+            "TASK: Account Unlock (Easy)\n"
+            "WORKFLOW: Step 1 → send_password_reset(email: sarah.chen@example.com), Step 2 → close_ticket"
+        ),
         "medium_ticket_1": (
             "TASK: Refund Request (Medium, purchase 45 days ago — OUTSIDE 30-day policy)\n"
-            "WORKFLOW: Step 1 → reply_to_customer (deny, cite 30-day policy), Step 2 → close_ticket\n"
+            "WORKFLOW: Step 1 → request_logs (check policy), Step 2 → reply_to_customer (deny, cite 30-day policy)\n"
+            "CRITICAL: Do NOT issue_refund."
+        ),
+        "medium_ticket_2": (
+            "TASK: Warranty Claim (Medium, purchase 97 days ago — OUTSIDE 90-day warranty)\n"
+            "WORKFLOW: Step 1 → request_logs (check warranty), Step 2 → reply_to_customer (deny, cite 90-day warranty)\n"
             "CRITICAL: Do NOT issue_refund."
         ),
         "hard_ticket_1": (
             "TASK: Technical Troubleshooting (Hard, ERR-99)\n"
             "WORKFLOW: Step 1 → request_logs, Step 2 → reply_to_customer (fix: update to v2.1), Step 3 → close_ticket"
+        ),
+        "hard_ticket_2": (
+            "TASK: Export Timeout (Hard, ERR-42, cache full)\n"
+            "WORKFLOW: Step 1 → request_logs, Step 2 → reply_to_customer (fix: clear cache), Step 3 → close_ticket"
         ),
     }.get(task_id, "")
 
@@ -225,8 +282,11 @@ def get_llm_action(client, obs_dict, history, task_id=None, step_count=1):
 
 TASK_CONFIGS = [
     ("easy_ticket_1", "Password Reset Request", "Easy ⭐"),
+    ("easy_ticket_2", "Account Locked Reset", "Easy ⭐"),
     ("medium_ticket_1", "Refund Request", "Medium ⭐⭐"),
-    ("hard_ticket_1", "Technical Error", "Hard ⭐⭐⭐"),
+    ("medium_ticket_2", "Warranty Claim", "Medium ⭐⭐"),
+    ("hard_ticket_1", "API Error (ERR-99)", "Hard ⭐⭐⭐"),
+    ("hard_ticket_2", "Export Timeout (ERR-42)", "Hard ⭐⭐⭐"),
 ]
 
 
@@ -394,7 +454,7 @@ def run_phase2(client, use_api):
         print("  │  NOTE: OPENAI_API_KEY not found. Running deterministic         │")
         print("  │        scripted agent.                                          │")
     print("  │                                                                  │")
-    print(f"  │  Total Score:   {total:.3f} / 3.000                                  │")
+    print(f"  │  Total Score:   {total:.3f} / {len(TASK_CONFIGS):.1f}00                                  │")
     print(f"  │  Average:       {avg:.3f}                                            │")
     print(f"  │  Total Time:    {total_time:.2f}s                                          │")
     print("  │                                                                  │")
@@ -453,10 +513,11 @@ def run_inference():
     rand_scores = [baseline_results.get(("Random", tid), 0) for tid, _, _ in TASK_CONFIGS]
     llm_scores = [llm_results[tid]["score"] for tid, _, _ in TASK_CONFIGS]
 
-    perf_avg = sum(perf_scores) / 3
-    imperf_avg = sum(imperf_scores) / 3
-    rand_avg = sum(rand_scores) / 3
-    llm_avg = sum(llm_scores) / 3
+    num_tasks = len(TASK_CONFIGS)
+    perf_avg = sum(perf_scores) / num_tasks
+    imperf_avg = sum(imperf_scores) / num_tasks
+    rand_avg = sum(rand_scores) / num_tasks
+    llm_avg = sum(llm_scores) / num_tasks
 
     print("══════════════════════════════════════════════════════════════════════")
     print("   FINAL EVALUATION REPORT")
