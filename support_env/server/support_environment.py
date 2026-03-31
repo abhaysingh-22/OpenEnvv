@@ -12,9 +12,9 @@ from support_env.models import SupportAction, SupportObservation, SupportState
 # ──────────────────────────────────────────────────────────────────────────────
 
 TASK_NORMALIZATION = {
-    "easy_ticket_1": 1.30,
-    "medium_ticket_1": 1.55,
-    "hard_ticket_1": 2.60,
+    "easy_ticket_1": 1.25,
+    "medium_ticket_1": 1.40,
+    "hard_ticket_1": 1.80,
 }
 
 class SupportEnvironment(Environment):

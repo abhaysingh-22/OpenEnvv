@@ -7,17 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 @pytest.fixture
-def sample_task():
-    from tasks import EasyTask
-    return EasyTask(
-        task_id="test_1",
-        title="Test Task",
-        description="A test task",
-        initial_data={"test": True},
-    )
-
-
-@pytest.fixture
-def sample_grader():
-    from graders import SupportGrader
-    return SupportGrader()
+def env():
+    """Provide a fresh SupportEnvironment instance."""
+    from support_env.server.support_environment import SupportEnvironment
+    return SupportEnvironment()
