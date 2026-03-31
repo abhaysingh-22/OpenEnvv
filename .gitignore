@@ -26,6 +26,7 @@ env/
 ENV/
 env.bak/
 venv.bak/
+.venv/
 
 # IDE
 .vscode/
@@ -53,5 +54,11 @@ logs/
 # Model files
 models/
 pretrained/
-.venv/
-OpenEnv-main
+
+# Build artifacts
+uv.lock
+
+# Reference docs (not part of the project)
+OpenEnv-main/
+openenv.md
+rules.md
