@@ -80,7 +80,7 @@ final_score = clamp(total_accumulated_reward / task_normalization, 0.0, 1.0)
 
 ---
 
-## Tasks
+## Tasks (6 total — 2 per difficulty)
 
 ### Easy ⭐ — Password Reset (`easy_ticket_1`)
 
@@ -92,71 +92,102 @@ final_score = clamp(total_accumulated_reward / task_normalization, 0.0, 1.0)
 
 **What makes it easy:** Single-tool resolution, clear email in observation, no policy ambiguity.
 
-**Common failures:** Wrong email address, unnecessary actions before reset.
+---
+
+### Easy ⭐ — Account Locked (`easy_ticket_2`)
+
+**Scenario:** Customer "Sarah Chen" (sarah.chen@example.com) locked out after 5 failed login attempts.
+
+**Optimal Workflow (2 steps):**
+1. `send_password_reset(email: "sarah.chen@example.com")` → +0.9
+2. `close_ticket()` → +0.3
+
+**What makes it easy:** Same tool pattern as `easy_ticket_1`, but different customer. Tests generalization.
 
 ---
 
 ### Medium ⭐⭐ — Refund Policy Check (`medium_ticket_1`)
 
-**Scenario:** Customer "Alice Smith" requests a refund for a product purchased **45 days ago** — exceeding the 30-day refund policy.
+**Scenario:** Customer "Alice Smith" requests a refund for a product purchased **45 days ago** — exceeding the 30-day refund policy (loaded from `data/company_policy.json`).
 
 **Optimal Workflow (2 steps):**
 1. `request_logs()` → +0.4 (verifies purchase date against policy)
 2. `reply_to_customer("...cannot refund...30-day policy...")` → +0.9
 
-**What makes it medium:** Agent must check `system_data.days_since_purchase` (45) against `refund_policy_days` (30), then correctly **deny** the refund with policy justification. Using `issue_refund` causes instant failure.
-
-**Trap:** An eager agent that issues a refund without checking policy gets `wrong_action_count += 3` → immediate episode termination with score near 0.
+**Trap:** Using `issue_refund` triggers `wrong_action_count += 3` → instant failure.
 
 ---
 
-### Hard ⭐⭐⭐ — API Troubleshooting (`hard_ticket_1`)
+### Medium ⭐⭐ — Warranty Claim (`medium_ticket_2`)
 
-**Scenario:** Customer "Bob Jones" reports their integration is broken — the `/process` endpoint returns HTTP 500 errors.
+**Scenario:** Customer "Dave Wilson" requests a warranty replacement for a product purchased **97 days ago** — exceeding the 90-day warranty.
 
 **Optimal Workflow (2 steps):**
-1. `request_logs()` → +0.7 (retrieves error code ERR-99 and client version v2.0.5)
+1. `request_logs()` → +0.4 (check warranty status)
+2. `reply_to_customer("...warranty expired...90 days...")` → +0.9
+
+**What makes it different from medium_ticket_1:** Different policy type (warranty vs refund), different numbers (90 vs 30), requiring generalized policy reasoning.
+
+---
+
+### Hard ⭐⭐⭐ — API Error Diagnosis (`hard_ticket_1`)
+
+**Scenario:** Customer "Bob Jones" reports `/process` endpoint returning HTTP 500 errors.
+
+**Optimal Workflow (2 steps):**
+1. `request_logs()` → +0.7 (retrieves error code ERR-99 and client version)
 2. `reply_to_customer("...update client to v2.1...")` → +0.9
 
-**What makes it hard:** Agent must:
-- Request logs **first** (mandatory — skipping gets −0.5)
-- Correctly diagnose ERR-99 from the stack trace
-- Provide the exact fix ("update to v2.1") without leaking internal code names
-- Balance information from `system_data.known_issues` with the log output
+**Anti-gaming:** Responses with hedging phrases ("I'm not sure", "maybe") get reduced credit via `_check_keyword_quality()`. Agent replies are also checked against `data/forbidden_phrases.txt`.
 
-**Common failures:** Guessing a fix without checking logs, providing a generic "try again later" response, or leaking internal system details.
+---
+
+### Hard ⭐⭐⭐ — Export Timeout (`hard_ticket_2`)
+
+**Scenario:** Customer "Carol White" reports nightly CSV export timing out.
+
+**Optimal Workflow (2 steps):**
+1. `request_logs()` → +0.7 (retrieves ERR-42, cache 98% full)
+2. `reply_to_customer("...clear cache...")` → +0.9
+
+**What makes it different from hard_ticket_1:** Different error code (ERR-42 vs ERR-99), different fix ("clear cache" vs "v2.1"), requiring cross-referencing `system_data.known_issues` with log output.
 
 ---
 
 ## Baseline Scores
 
-Evaluated using `inference.py` with three scripted agents and an optional LLM agent:
+Evaluated using `inference.py` with three scripted agents and an optional LLM agent across all 6 tasks:
 
 ### Multi-Agent Baseline (Scripted — No LLM Required)
 
-| Agent | Easy ⭐ | Medium ⭐⭐ | Hard ⭐⭐⭐ | Average |
-|:------|:------:|:---------:|:--------:|:-------:|
-| 🟢 **Perfect** | 0.960 | 0.929 | 0.889 | **0.926** |
-| 🟡 **Imperfect** | 0.640 | 0.643 | 0.556 | **0.613** |
-| 🔴 **Random** | 0.128 | 0.000 | 0.000 | **0.043** |
+| Agent | Easy-1 | Easy-2 | Med-1 | Med-2 | Hard-1 | Hard-2 | Average |
+|:------|:------:|:------:|:-----:|:-----:|:------:|:------:|:-------:|
+| 🟢 **Perfect** | 0.960 | 0.960 | 0.929 | 0.929 | 0.889 | 0.889 | **0.926** |
+| 🟡 **Imperfect** | 0.640 | 0.640 | 0.643 | 0.643 | 0.556 | 0.556 | **0.613** |
+| 🔴 **Random** | 0.128 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | **0.021** |
 
 ### Key Observations
 
-- ✅ **Score differentiation**: Perfect >> Imperfect >> Random across all tasks
+- ✅ **Score differentiation**: Perfect >> Imperfect >> Random across all 6 tasks
 - ✅ **Difficulty scaling**: Perfect agent scores decrease with difficulty (0.960 → 0.929 → 0.889)
 - ✅ **No perfect scores**: Even the optimal agent doesn't reach 1.0 — the environment is genuinely challenging
-- ✅ **Meaningful gradients**: Imperfect agent shows clear degradation (0.640 → 0.643 → 0.556)
+- ✅ **Anti-gaming protection**: Keyword-stuffing with hedging phrases gets reduced credit
+- ✅ **Forbidden phrase enforcement**: Agent replies checked against `data/forbidden_phrases.txt`
+- ✅ **Data-driven grading**: Policy values loaded from `data/company_policy.json`, not hardcoded
 - ✅ **Reward shaping**: Partial credit at every step, not just binary pass/fail
 
 ### LLM Agent (gpt-4.1-mini, when API key available)
 
 | Task | Score | Steps | Agent Mode |
 |:-----|:-----:|:-----:|:----------:|
-| Easy ⭐ | 0.960 | 2 | LLM |
-| Medium ⭐⭐ | 0.500 | 1 | LLM |
-| Hard ⭐⭐⭐ | 0.889 | 2 | LLM |
+| Easy-1 ⭐ | 0.960 | 2 | LLM |
+| Easy-2 ⭐ | 0.960 | 2 | LLM |
+| Medium-1 ⭐⭐ | 0.929 | 2 | LLM |
+| Medium-2 ⭐⭐ | 0.929 | 2 | LLM |
+| Hard-1 ⭐⭐⭐ | 0.889 | 2 | LLM |
+| Hard-2 ⭐⭐⭐ | varies | 2-10 | LLM |
 
-The LLM excels at Easy and Hard but scores lower on Medium because it takes a shortcut (direct denial without first checking logs), demonstrating that the environment rewards **thoroughness**, not just correctness.
+The LLM handles familiar patterns well but struggles with `hard_ticket_2` (ERR-42), demonstrating the environment creates **genuinely novel challenges** that cannot be memorized.
 
 ---
 
@@ -247,8 +278,11 @@ The container runs as `appuser` (non-root) on port 7860, compatible with Hugging
 ## Technical Highlights
 
 - **Full OpenEnv Spec Compliance**: Typed Pydantic models, `step()`/`reset()`/`state()` API, `openenv.yaml` metadata
+- **Data-Driven Grading**: Policy values loaded from `data/company_policy.json`, forbidden phrases from `data/forbidden_phrases.txt`
+- **Anti-Gaming Protection**: Keyword-stuffing with hedging phrases gets reduced credit via `_check_keyword_quality()`
 - **Dense Reward Shaping**: Every step produces a reward signal — not just binary end-of-episode scoring
+- **6 Tasks (2 per difficulty)**: Password reset, account unlock, refund denial, warranty claim, ERR-99 diagnosis, ERR-42 diagnosis
 - **Multi-Agent Evaluation**: 4 agent types (Perfect, Imperfect, Random, LLM) demonstrate scoring validity
 - **Graceful Degradation**: Runs correctly with or without OpenAI API key
 - **SKILLS.md Integration**: 570-line instruction manual guides the LLM agent through optimal workflows
-- **Production-Ready Container**: Non-root user, healthcheck, optimised image size (~380MB)
+- **Production-Ready Container**: Non-root user, healthcheck, optimised image size (~338MB)
