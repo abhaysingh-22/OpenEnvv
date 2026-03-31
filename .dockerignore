@@ -1,0 +1,55 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+*.egg
+.installed.cfg
+
+# Virtual environments
+.venv
+venv
+ENV
+env.bak
+venv.bak
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+.tox
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.example
+
+# Logs
+logs
+*.log
+
+# Model files
+models
+pretrained
+
+# Docker
+Dockerfile
+docker-compose*.yml
+
+# Docs
+README.md
