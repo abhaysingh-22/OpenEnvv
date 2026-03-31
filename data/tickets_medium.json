@@ -1,23 +1,26 @@
 [
   {
-    "id": "TICKET_101",
-    "title": "Feature Request - Export to CSV",
-    "description": "User wants to export data to CSV format",
+    "id": "TKT-2001",
+    "task_id": "medium_ticket_1",
+    "title": "Refund Request (Outside Policy)",
+    "description": "Customer requests refund for product purchased 45 days ago (30-day limit)",
     "difficulty": "medium",
-    "expected_response": "Acknowledge request and provide workaround or timeline"
+    "user": "Alice Smith",
+    "email": "alice@example.com",
+    "policy_action": "deny",
+    "expected_workflow": ["request_logs", "reply_to_customer"],
+    "expected_response": "Deny refund citing 30-day policy window"
   },
   {
-    "id": "TICKET_102",
-    "title": "Integration with Zapier",
-    "description": "User asking about Zapier integration availability",
+    "id": "TKT-2002",
+    "task_id": "medium_ticket_2",
+    "title": "Warranty Replacement (Expired)",
+    "description": "Customer requests warranty replacement for product purchased 97 days ago (90-day warranty)",
     "difficulty": "medium",
-    "expected_response": "Explain current integrations and workarounds"
-  },
-  {
-    "id": "TICKET_103",
-    "title": "API Rate Limiting",
-    "description": "User getting rate limit errors",
-    "difficulty": "medium",
-    "expected_response": "Explain rate limits and suggest optimization"
+    "user": "Dave Wilson",
+    "email": "dave.wilson@example.com",
+    "policy_action": "deny",
+    "expected_workflow": ["request_logs", "reply_to_customer"],
+    "expected_response": "Deny warranty claim citing 90-day warranty period"
   }
 ]

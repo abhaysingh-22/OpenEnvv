@@ -1,23 +1,24 @@
 [
   {
-    "id": "TICKET_001",
+    "id": "TKT-1001",
+    "task_id": "easy_ticket_1",
     "title": "Password Reset Request",
-    "description": "User cannot access account",
+    "description": "Customer forgot password, cannot access account",
     "difficulty": "easy",
-    "expected_response": "Send password reset link"
+    "user": "John Doe",
+    "email": "john@example.com",
+    "expected_workflow": ["send_password_reset", "close_ticket"],
+    "expected_response": "Send password reset link to correct email"
   },
   {
-    "id": "TICKET_002",
-    "title": "Account Creation Help",
-    "description": "User needs help creating account",
+    "id": "TKT-1002",
+    "task_id": "easy_ticket_2",
+    "title": "Account Locked After Failed Attempts",
+    "description": "Customer locked out after 5 failed login attempts",
     "difficulty": "easy",
-    "expected_response": "Provide signup link and instructions"
-  },
-  {
-    "id": "TICKET_003",
-    "title": "Billing Question",
-    "description": "User asking about subscription cost",
-    "difficulty": "easy",
-    "expected_response": "Provide pricing information"
+    "user": "Sarah Chen",
+    "email": "sarah.chen@example.com",
+    "expected_workflow": ["send_password_reset", "close_ticket"],
+    "expected_response": "Send password reset link to unlock account"
   }
 ]

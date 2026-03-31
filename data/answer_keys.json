@@ -1,32 +1,44 @@
 {
-  "TICKET_001": {
+  "TKT-1001": {
+    "task_id": "easy_ticket_1",
     "category": "account_recovery",
-    "keywords": ["password", "reset", "link", "email"],
-    "min_similarity": 0.7
+    "keywords": ["password", "reset", "email"],
+    "correct_tool": "send_password_reset",
+    "correct_args": {"email": "john@example.com"}
   },
-  "TICKET_002": {
-    "category": "onboarding",
-    "keywords": ["signup", "account", "create", "register"],
-    "min_similarity": 0.7
+  "TKT-1002": {
+    "task_id": "easy_ticket_2",
+    "category": "account_recovery",
+    "keywords": ["password", "reset", "locked", "unlock"],
+    "correct_tool": "send_password_reset",
+    "correct_args": {"email": "sarah.chen@example.com"}
   },
-  "TICKET_003": {
-    "category": "billing",
-    "keywords": ["price", "cost", "subscription", "plan"],
-    "min_similarity": 0.7
+  "TKT-2001": {
+    "task_id": "medium_ticket_1",
+    "category": "refund_policy",
+    "keywords": ["refund", "deny", "30-day", "policy"],
+    "policy_decision": "deny",
+    "reason": "purchase exceeds 30-day refund window"
   },
-  "TICKET_101": {
-    "category": "feature_request",
-    "keywords": ["export", "csv", "data", "download"],
-    "min_similarity": 0.65
+  "TKT-2002": {
+    "task_id": "medium_ticket_2",
+    "category": "warranty_policy",
+    "keywords": ["warranty", "deny", "90-day", "expired"],
+    "policy_decision": "deny",
+    "reason": "purchase exceeds 90-day warranty period"
   },
-  "TICKET_102": {
-    "category": "integration",
-    "keywords": ["zapier", "integration", "api", "automation"],
-    "min_similarity": 0.65
+  "TKT-3001": {
+    "task_id": "hard_ticket_1",
+    "category": "technical_diagnostic",
+    "keywords": ["ERR-99", "v2.1", "update", "client"],
+    "error_code": "ERR-99",
+    "fix": "Update client to v2.1"
   },
-  "TICKET_103": {
-    "category": "technical",
-    "keywords": ["rate", "limit", "api", "throttle"],
-    "min_similarity": 0.65
+  "TKT-3002": {
+    "task_id": "hard_ticket_2",
+    "category": "technical_diagnostic",
+    "keywords": ["ERR-42", "cache", "clear", "timeout"],
+    "error_code": "ERR-42",
+    "fix": "Clear cache"
   }
 }
