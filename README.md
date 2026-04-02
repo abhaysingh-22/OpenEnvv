@@ -231,8 +231,8 @@ openenv validate
 ### Docker
 
 ```bash
-docker build -t sst_openenv .
-docker run -p 7860:7860 sst_openenv
+docker build -t abhaysingh02/openenv .
+docker run -p 7860:7860 abhaysingh02/openenv
 ```
 
 The container runs as `appuser` (non-root) on port 7860, compatible with Hugging Face Spaces.
