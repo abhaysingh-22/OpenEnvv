@@ -50,3 +50,4 @@ def test_repeated_action_penalty():
     obs2 = env.step(SupportAction(tool_name="send_password_reset", tool_args={"email": "john@example.com"}))
     # Second send should not increase the score (repeated action penalty)
     assert obs2.reward <= obs1.reward, "Repeated action should not increase reward"
+

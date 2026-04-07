@@ -67,3 +67,4 @@ def test_observation_serialization():
     d = obs.model_dump()
     assert "ticket_id" in d
     assert "user_email" in d
+

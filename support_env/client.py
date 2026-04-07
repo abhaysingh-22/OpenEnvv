@@ -34,3 +34,4 @@ class SupportEnv(EnvClient[SupportAction, SupportObservation, SupportState]):
     def _parse_observation(self, payload: dict) -> SupportObservation:
         """Deserialize initial observation from reset."""
         return SupportObservation(**payload)
+

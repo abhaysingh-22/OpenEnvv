@@ -483,3 +483,4 @@ class SupportEnvironment(Environment):
     def state(self) -> SupportState:
         """Return the current state snapshot."""
         return self._state.model_copy(deep=True)
+

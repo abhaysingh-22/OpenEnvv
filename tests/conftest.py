@@ -11,3 +11,4 @@ def env():
     """Provide a fresh SupportEnvironment instance."""
     from support_env.server.support_environment import SupportEnvironment
     return SupportEnvironment()
+
