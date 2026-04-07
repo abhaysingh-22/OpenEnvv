@@ -286,3 +286,4 @@ The container runs as `appuser` (non-root) on port 7860, compatible with Hugging
 - **Graceful Degradation**: Runs correctly with or without OpenAI API key
 - **SKILLS.md Integration**: 570-line instruction manual guides the LLM agent through optimal workflows
 - **Production-Ready Container**: Non-root user, healthcheck, optimised image size (~338MB)
+

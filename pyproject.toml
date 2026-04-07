@@ -20,3 +20,4 @@ server = "server.app:main"
 
 [tool.setuptools]
 packages = ["support_env", "support_env.server", "server"]
+
