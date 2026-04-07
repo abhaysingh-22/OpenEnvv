@@ -7,8 +7,8 @@ Runs two evaluation phases:
   Phase 2: LLM agent evaluation (gpt-4.1-mini + SKILLS.md)
 
 Environment Variables:
-    OPENAI_API_KEY  — required for LLM agent (Phase 2)
-    API_BASE_URL    — custom API endpoint (optional)
+    API_KEY         — required for LLM agent (Phase 2) — provided by LiteLLM proxy
+    API_BASE_URL    — required for routing through LiteLLM proxy
     MODEL_NAME      — model to use (default: gpt-4.1-mini)
     HF_TOKEN        — Hugging Face token (optional)
 """
@@ -247,7 +247,8 @@ def get_llm_action(client, obs_dict, history, task_id=None, step_count=1):
     try:
         import re
         api_base = os.getenv("API_BASE_URL")
-        active_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), base_url=api_base) if api_base else client
+        api_key = os.getenv("API_KEY")
+        active_client = OpenAI(api_key=api_key, base_url=api_base) if api_base and api_key else client
 
         response = active_client.chat.completions.create(
             model=os.getenv("MODEL_NAME", "gpt-4.1-mini"),
@@ -483,7 +484,7 @@ def run_inference():
     print("   OpenEnv Evaluation · Customer Support Ticket Environment")
     print("══════════════════════════════════════════════════════════════════════")
 
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("API_KEY")
     model_name = os.getenv("MODEL_NAME", "gpt-4.1-mini")
     api_base = os.getenv("API_BASE_URL")
     hf_token = os.getenv("HF_TOKEN")
@@ -503,9 +504,9 @@ def run_inference():
     # Phase 2
     client = None
     use_api = False
-    if api_key and OPENAI_AVAILABLE:
+    if api_key and api_base and OPENAI_AVAILABLE:
         try:
-            client = OpenAI(api_key=api_key, base_url=api_base) if api_base else OpenAI(api_key=api_key)
+            client = OpenAI(api_key=api_key, base_url=api_base)
             use_api = True
         except Exception:
             pass
