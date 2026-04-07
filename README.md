@@ -288,3 +288,4 @@ The container runs as `appuser` (non-root) on port 7860, compatible with Hugging
 - **Production-Ready Container**: Non-root user, healthcheck, optimised image size (~338MB)
 
 
+

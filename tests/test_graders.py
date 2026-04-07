@@ -127,3 +127,4 @@ def test_forbidden_phrases_loaded():
     assert len(FORBIDDEN_PHRASES) > 0, "Forbidden phrases should be loaded from data/"
     assert "your fault" in FORBIDDEN_PHRASES, "'your fault' should be a forbidden phrase"
 
+

@@ -51,3 +51,4 @@ def test_repeated_action_penalty():
     # Second send should not increase the score (repeated action penalty)
     assert obs2.reward <= obs1.reward, "Repeated action should not increase reward"
 
+

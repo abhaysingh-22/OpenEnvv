@@ -68,3 +68,4 @@ def test_observation_serialization():
     assert "ticket_id" in d
     assert "user_email" in d
 
+

@@ -11,7 +11,7 @@ __pycache__
 *.egg-info
 *.egg
 .installed.cfg
-
+ 
 # Virtual environments
 .venv
 venv

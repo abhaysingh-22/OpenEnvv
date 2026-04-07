@@ -1,7 +1,7 @@
 FROM python:3.10-slim
 
 WORKDIR /app
-
+ 
 # Optimize Python and pip behavior in containers
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

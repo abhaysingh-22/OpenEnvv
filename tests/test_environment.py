@@ -109,3 +109,4 @@ def test_episode_terminates_on_done():
     obs = env.step(SupportAction(tool_name="close_ticket", tool_args={}))
     assert obs.done is True
 
+
