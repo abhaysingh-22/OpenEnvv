@@ -401,6 +401,9 @@ def run_phase2(client, use_api):
         print(f"  [{task_id}] {task_name}  {difficulty}")
         print(f"  {'─' * 66}")
 
+        # ═══ STRUCTURED OUTPUT: [START] ═══
+        print(f"[START] task={task_id}", flush=True)
+
         env = SupportEnvironment()
         obs = env.reset(task_id=task_id)
 
@@ -426,6 +429,9 @@ def run_phase2(client, use_api):
             info_str = obs.metadata.get("info", "")
             step_scores.append(reward_val)
 
+            # ═══ STRUCTURED OUTPUT: [STEP] ═══
+            print(f"[STEP] step={step_num} reward={reward_val:.3f}", flush=True)
+
             print(f"    Step {step_num}: {action.tool_name}" +
                   (f"({args_str})" if args_str and len(args_str) < 60 else "") +
                   f"  → {reward_val:.3f}  {info_str}")
@@ -438,6 +444,9 @@ def run_phase2(client, use_api):
         final = step_scores[-1] if step_scores else 0.0
         llm_results[task_id] = {"score": final, "steps": len(step_scores),
                                  "time": elapsed, "mode": agent_mode}
+
+        # ═══ STRUCTURED OUTPUT: [END] ═══
+        print(f"[END] task={task_id} score={final:.3f} steps={len(step_scores)}", flush=True)
 
         print(f"    ✓ Completed in {len(step_scores)} steps │ Score: {final:.3f} │ Time: {elapsed:.2f}s │ Agent: {agent_mode}")
         print()
