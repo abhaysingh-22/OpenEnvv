@@ -152,8 +152,8 @@ def _check_keyword_quality(content: str, required_keyword: str) -> float:
     hedging = ["i don't know", "i'm not sure", "maybe", "i think", "possibly", "not certain", "unclear"]
     for hedge in hedging:
         if hedge in content_lower:
-            return 0.5  # Partial credit — keyword present but agent is hedging
-    return 1.0  # Full credit — keyword present, no hedging
+            return 0.4  # Partial credit — keyword present but agent is hedging
+    return 0.9  # Full credit — keyword present, no hedging (strictly < 1.0)
 
 
 class SupportEnvironment(Environment):
@@ -427,11 +427,11 @@ class SupportEnvironment(Environment):
                 if action.tool_name == "reply_to_customer":
                     content = str(action.tool_args.get("content", "")).lower()
                     quality = _check_keyword_quality(content, fix_keyword)
-                    if quality >= 1.0:
+                    if quality >= 0.85:  # Perfect diagnosis (quality = 0.9)
                         step_reward, info_str = 0.9, f"Correct diagnosis: {fix_keyword} (+0.9)"
-                    elif quality >= 0.5:
+                    elif quality >= 0.3:  # Hedged diagnosis (quality = 0.4)
                         step_reward, info_str = 0.4, f"Hedged diagnosis ({fix_keyword} mentioned but uncertain) (+0.4)"
-                    else:
+                    else:  # Not found (quality = 0.0)
                         self._wrong_action_count += 1
                         step_reward, info_str = -0.5, "Wrong diagnosis (-0.5)"
                     step_reward += _check_forbidden_phrases(content)
@@ -444,11 +444,11 @@ class SupportEnvironment(Environment):
                 elif action.tool_name == "reply_to_customer":
                     content = str(action.tool_args.get("content", "")).lower()
                     quality = _check_keyword_quality(content, fix_keyword)
-                    if quality >= 1.0:
+                    if quality >= 0.85:  # Perfect late diagnosis (quality = 0.9)
                         step_reward, info_str = 0.6, "Late diagnosis (+0.6)"
-                    elif quality >= 0.5:
+                    elif quality >= 0.3:  # Hedged late diagnosis (quality = 0.4)
                         step_reward, info_str = 0.3, "Hedged late diagnosis (+0.3)"
-                    else:
+                    else:  # Not found (quality = 0.0)
                         step_reward, info_str = -0.3, "Extra communication (-0.3)"
                     step_reward += _check_forbidden_phrases(content)
                 elif action.tool_name == self._last_action:
@@ -470,13 +470,18 @@ class SupportEnvironment(Environment):
 
         self._last_action = action.tool_name
 
-        # Final normalization to (0.0, 1.0) — strictly between 0 and 1 (exclusive)
+        # Final normalization to (0, 1) — strictly between 0 and 1 (exclusive)
+        # Clamp BEFORE rounding to prevent rounding to exactly 0.0 or 1.0
         norm = TASK_NORMALIZATION.get(task_id, 1.5)
-        final_score = max(0.01, min(0.99, self._total_reward / norm))
+        final_score = max(0.0005, min(0.9994, self._total_reward / norm))
+        
+        # Round to 3 decimals, then clamp again as safety check
+        rounded_reward = round(final_score, 3)
+        rounded_reward = max(0.001, min(0.999, rounded_reward))
 
         # Update observation
         self._current_obs.done = is_complete
-        self._current_obs.reward = round(final_score, 3)
+        self._current_obs.reward = rounded_reward
         self._current_obs.metadata = {"info": info_str}
 
         return self._current_obs.model_copy(deep=True)
@@ -485,5 +490,3 @@ class SupportEnvironment(Environment):
     def state(self) -> SupportState:
         """Return the current state snapshot."""
         return self._state.model_copy(deep=True)
-
-
