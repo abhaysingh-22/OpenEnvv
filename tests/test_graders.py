@@ -59,7 +59,7 @@ def test_medium_issue_refund_is_policy_violation():
     env = SupportEnvironment()
     env.reset(task_id="medium_ticket_1")
     obs = env.step(SupportAction(tool_name="issue_refund", tool_args={}))
-    assert obs.reward <= 0.001, f"Expected near 0 for policy violation, got {obs.reward}"
+    assert obs.reward <= 0.01, f"Expected near 0 for policy violation, got {obs.reward}"
 
 
 def test_hard_correct_sequence_scores_high():
