@@ -468,9 +468,9 @@ class SupportEnvironment(Environment):
 
         self._last_action = action.tool_name
 
-        # Final normalization to [0.0, 1.0]
+        # Final normalization to (0.0, 1.0) — strictly between 0 and 1 (exclusive)
         norm = TASK_NORMALIZATION.get(task_id, 1.5)
-        final_score = max(0.0, min(1.0, self._total_reward / norm))
+        final_score = max(0.01, min(0.99, self._total_reward / norm))
 
         # Update observation
         self._current_obs.done = is_complete
