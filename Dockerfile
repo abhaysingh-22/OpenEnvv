@@ -8,6 +8,15 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
+# ────────────────────────────────────────────────────────────────────
+# CACHE-BUSTER: Forces fresh build on HuggingFace Spaces
+# Updated: 2026-04-12 - Reward validator & grading fixes
+# ────────────────────────────────────────────────────────────────────
+RUN echo "Build timestamp: $(date -u)" && \
+    echo "Clearing cache and forcing fresh rebuild..." && \
+    echo "Validator: Pydantic field_validator for reward range (0, 1)" && \
+    echo "Fixes: 3-decimal precision, no 0.0 or 1.0 rewards"
+
 # Install Python dependencies, then strip heavy unused transitive deps in SAME layer
 # openenv-core pulls gradio/numpy/etc. for rich envs — we only need the HTTP server core
 COPY requirements.txt pyproject.toml ./
