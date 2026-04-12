@@ -209,7 +209,7 @@ class SupportEnvironment(Environment):
             history=[],
             system_data=self._ticket_config["system_data"],
             done=False,
-            reward=0.01,  # Initial score (strictly between 0 and 1, exclusive)
+            reward=0.5,  # Initial score: neutral, strictly between 0 and 1
         )
 
         return self._current_obs.model_copy(deep=True)
@@ -471,13 +471,13 @@ class SupportEnvironment(Environment):
         self._last_action = action.tool_name
 
         # Final normalization to (0, 1) — strictly between 0 and 1 (exclusive)
-        # Clamp to 0.01 and 0.99 to prevent any 2-decimal truncation from making it mathematically zero or one
+        # Clamp BEFORE rounding to prevent rounding to exactly 0.0 or 1.0
         norm = TASK_NORMALIZATION.get(task_id, 1.5)
-        final_score = max(0.01, min(0.99, self._total_reward / norm))
+        final_score = max(0.0005, min(0.9995, self._total_reward / norm))
         
-        # Round to 2 decimals, then clamp again as safety check
-        rounded_reward = round(final_score, 2)
-        rounded_reward = max(0.01, min(0.99, rounded_reward))
+        # Round to 3 decimals, then clamp again as safety check
+        rounded_reward = round(final_score, 3)
+        rounded_reward = max(0.001, min(0.999, rounded_reward))
 
         # Update observation
         self._current_obs.done = is_complete

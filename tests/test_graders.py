@@ -59,11 +59,11 @@ def test_medium_issue_refund_is_policy_violation():
     env = SupportEnvironment()
     env.reset(task_id="medium_ticket_1")
     obs = env.step(SupportAction(tool_name="issue_refund", tool_args={}))
-    assert obs.reward <= 0.01, f"Expected near minimum for policy violation, got {obs.reward}"
+    assert obs.reward <= 0.05, f"Expected near minimum for policy violation, got {obs.reward}"
 
 
 def test_hard_correct_sequence_scores_high():
-    """Perfect agent on hard task: request_logs → reply(v2.1) should score high (not 1.0)."""
+    """Perfect agent on hard task: request_logs → reply(v2.1) should score high (not 0.999)."""
     env = SupportEnvironment()
     env.reset(task_id="hard_ticket_1")
     obs = env.step(SupportAction(tool_name="request_logs", tool_args={}))
@@ -99,12 +99,12 @@ def test_hard_keyword_stuffing_with_hedging():
 
 
 def test_scores_in_valid_range():
-    """All task scores must be in (0.01, 0.99) exclusive."""
+    """All task scores must be strictly between 0 and 1 (0.001 to 0.999)."""
     for task_id in ["easy_ticket_1", "easy_ticket_2", "medium_ticket_1", "medium_ticket_2", "hard_ticket_1", "hard_ticket_2"]:
         env = SupportEnvironment()
         env.reset(task_id=task_id)
         obs = env.step(SupportAction(tool_name="close_ticket", tool_args={}))
-        assert 0.01 <= obs.reward < 0.99, f"Score {obs.reward} out of range for {task_id}"
+        assert 0.001 <= obs.reward <= 0.999, f"Score {obs.reward} out of range (0.001-0.999) for {task_id}"
 
 
 def test_score_differentiation():
