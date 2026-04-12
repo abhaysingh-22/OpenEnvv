@@ -473,7 +473,7 @@ class SupportEnvironment(Environment):
         # Final normalization to (0, 1) — strictly between 0 and 1 (exclusive)
         # Clamp BEFORE rounding to prevent rounding to exactly 0.0 or 1.0
         norm = TASK_NORMALIZATION.get(task_id, 1.5)
-        final_score = max(0.0005, min(0.9995, self._total_reward / norm))
+        final_score = max(0.0005, min(0.9994, self._total_reward / norm))
         
         # Round to 3 decimals, then clamp again as safety check
         rounded_reward = round(final_score, 3)
