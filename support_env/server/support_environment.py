@@ -471,13 +471,28 @@ class SupportEnvironment(Environment):
         self._last_action = action.tool_name
 
         # Final normalization to (0, 1) — strictly between 0 and 1 (exclusive)
-        # Clamp BEFORE rounding to prevent rounding to exactly 0.0 or 1.0
+        # ════════════════════════════════════════════════════════════════════
+        # CRITICAL SAFETY PIPELINE - Reward must be STRICTLY in (0, 1)
+        # ════════════════════════════════════════════════════════════════════
         norm = TASK_NORMALIZATION.get(task_id, 1.5)
+        
+        # Stage 1: Pre-round clamp to (0.0005, 0.9994)
+        # - 0.0005 is safely above what would round to 0.0
+        # - 0.9994 is safely below what would round to 1.0 (0.9995 rounds to 1.0)
         final_score = max(0.0005, min(0.9994, self._total_reward / norm))
         
-        # Round to 3 decimals, then clamp again as safety check
+        # Stage 2: Round to 3 decimals (never produces 0.0 or 1.0 from above range)
+        # - round(0.0005, 3) = 0.001 (safe)
+        # - round(0.9994, 3) = 0.999 (safe)
         rounded_reward = round(final_score, 3)
+        
+        # Stage 3: Post-round clamp to (0.001, 0.999) - defense in depth
         rounded_reward = max(0.001, min(0.999, rounded_reward))
+        
+        # Validate: Ensure reward is STRICTLY between 0 and 1
+        assert 0.0 < rounded_reward < 1.0, \
+            f"❌ SAFETY CHECK FAILED: reward={rounded_reward} is not strictly in (0, 1). " \
+            f"total_reward={self._total_reward}, norm={norm}, final={final_score:.6f}"
 
         # Update observation
         self._current_obs.done = is_complete

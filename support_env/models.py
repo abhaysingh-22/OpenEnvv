@@ -23,17 +23,43 @@ class SupportObservation(Observation):
     @field_validator('reward')
     @classmethod
     def validate_reward_range(cls, v):
-        """Ensure reward is strictly between 0 and 1 (exclusive)."""
+        """Ensure reward is strictly between 0 and 1 (exclusive).
+        
+        This validator enforces:
+        - reward > 0.0 (not equal to 0.0)
+        - reward < 1.0 (not equal to 1.0)
+        - No floating-point edge cases
+        """
         if v is None:
             v = 0.5  # Default to neutral value
         
-        # Check exact equality first (catches 0.0 and 1.0)
-        if v == 0.0 or v == 1.0:
-            raise ValueError(f"Reward must be strictly between 0 and 1 (exclusive), got {v}")
+        # ════════════════════════════════════════════════════════════
+        # CHECK 1: Exact equality check (most common violations)
+        # ════════════════════════════════════════════════════════════
+        if v == 0.0:
+            raise ValueError(
+                f"❌ VALIDATION FAILED: reward == 0.0 (exactly zero). "
+                f"Reward must be strictly > 0.0. Got: {repr(v)}"
+            )
+        if v == 1.0:
+            raise ValueError(
+                f"❌ VALIDATION FAILED: reward == 1.0 (exactly one). "
+                f"Reward must be strictly < 1.0. Got: {repr(v)}"
+            )
         
-        # Check range
-        if v <= 0.0 or v >= 1.0:
-            raise ValueError(f"Reward must be strictly between 0 and 1 (exclusive), got {v}")
+        # ════════════════════════════════════════════════════════════
+        # CHECK 2: Range check (catches >= and <=)
+        # ════════════════════════════════════════════════════════════
+        if v <= 0.0:
+            raise ValueError(
+                f"❌ VALIDATION FAILED: reward <= 0.0 (outside valid range). "
+                f"Reward must be strictly in (0, 1). Got: {repr(v)}"
+            )
+        if v >= 1.0:
+            raise ValueError(
+                f"❌ VALIDATION FAILED: reward >= 1.0 (outside valid range). "
+                f"Reward must be strictly in (0, 1). Got: {repr(v)}"
+            )
         
         return v
 
