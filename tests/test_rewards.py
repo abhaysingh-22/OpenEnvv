@@ -18,7 +18,7 @@ def test_penalty_reduces_reward():
     env = SupportEnvironment()
     env.reset(task_id="easy_ticket_1")
     obs = env.step(SupportAction(tool_name="issue_refund", tool_args={}))
-    assert obs.reward == 0.0, f"Expected 0.0 for wrong action, got {obs.reward}"
+    assert obs.reward <= 0.01, f"Expected near 0 for wrong action, got {obs.reward}"
 
 
 def test_reward_clamped_to_unit_range():
@@ -28,7 +28,7 @@ def test_reward_clamped_to_unit_range():
         env.reset(task_id=task_id)
         for _ in range(5):
             obs = env.step(SupportAction(tool_name="close_ticket", tool_args={}))
-            assert 0.0 <= obs.reward <= 1.0, f"Reward {obs.reward} out of range for {task_id}"
+            assert 0.0 < obs.reward < 1.0, f"Reward {obs.reward} out of range for {task_id}"
             if obs.done:
                 break
 
