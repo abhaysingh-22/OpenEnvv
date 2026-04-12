@@ -211,9 +211,10 @@ pip install -e .
 The inference script runs **both phases automatically** and works with or without an API key:
 
 ```bash
-# With OpenAI API (LLM agent + scripted baselines)
-export OPENAI_API_KEY="sk-..."
+# With API key (LLM agent + scripted baselines)
+export HF_TOKEN="sk-..."  # OpenAI key, HF token, or any compatible API key
 export MODEL_NAME="gpt-4.1-mini"
+export API_BASE_URL="https://api.openai.com/v1"
 python inference.py
 
 # Without API key (scripted baselines + deterministic fallback)
@@ -243,10 +244,9 @@ The container runs as `appuser` (non-root) on port 7860, compatible with Hugging
 
 | Variable | Required | Default | Description |
 |:---------|:--------:|:--------|:------------|
-| `OPENAI_API_KEY` | No | — | OpenAI API key for LLM agent (Phase 2). Falls back to scripted agent if missing. |
-| `API_BASE_URL` | No | — | Custom API endpoint (for proxies or alternative providers) |
-| `MODEL_NAME` | No | `gpt-4.1-mini` | Model identifier for the OpenAI client |
-| `HF_TOKEN` | No | — | Hugging Face token for Space deployment |
+| `HF_TOKEN` | Yes | — | API credential (OpenAI key, HF token, or equivalent). Enables LLM agent (Phase 2). Optional for scripted fallback agent. |
+| `API_BASE_URL` | No | `https://api.openai.com/v1` | Custom API endpoint (for proxies or alternative providers). |
+| `MODEL_NAME` | No | `gpt-4.1-mini` | Model identifier for the OpenAI client. |
 
 ---
 
