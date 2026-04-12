@@ -444,7 +444,7 @@ def run_phase2(client, use_api):
 
             # ═══ STRUCTURED OUTPUT: [STEP] ═══
             error_output = error_msg if error_msg else "null"
-            print(f"[STEP] step={step_num} action={action_str} reward={reward_val:.2f} done={str(obs.done).lower()} error={error_output}", flush=True)
+            print(f"[STEP] step={step_num} action={action_str} reward={reward_val:.3f} done={str(obs.done).lower()} error={error_output}", flush=True)
 
             print(f"    Step {step_num}: {action.tool_name}" +
                   (f"({args_str})" if args_str and len(args_str) < 60 else "") +
@@ -457,7 +457,7 @@ def run_phase2(client, use_api):
         elapsed = time.time() - start
         total_time += elapsed
         final = step_details[-1]["reward"] if step_details else 0.0
-        rewards_list = ",".join(f"{d['reward']:.2f}" for d in step_details)
+        rewards_list = ",".join(f"{d['reward']:.3f}" for d in step_details)
         llm_results[task_id] = {"score": final, "steps": len(step_details),
                                  "time": elapsed, "mode": agent_mode}
 
