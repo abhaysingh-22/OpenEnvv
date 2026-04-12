@@ -1,3 +1,14 @@
+---
+title: Customer Support Ticket Environment
+emoji: 🎧
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+sdk_version: "1"
+app_file: app.py
+pinned: false
+---
+
 # 🎧 Customer Support Ticket Environment
 
 > An OpenEnv-compliant, real-world AI agent evaluation environment simulating interactive customer support, where agents must resolve tickets using tools — graded on correctness, efficiency, and policy compliance.
