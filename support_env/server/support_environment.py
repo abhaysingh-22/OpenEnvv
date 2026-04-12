@@ -208,6 +208,8 @@ class SupportEnvironment(Environment):
             body=self._ticket_config["body"],
             history=[],
             system_data=self._ticket_config["system_data"],
+            done=False,
+            reward=0.01,  # Initial score (strictly between 0 and 1, exclusive)
         )
 
         return self._current_obs.model_copy(deep=True)
