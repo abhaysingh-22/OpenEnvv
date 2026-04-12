@@ -61,7 +61,7 @@ Each observation is a `SupportObservation` (Pydantic model) containing:
 | `history` | `List[Dict]` | Chronological log of agent/user/system interactions |
 | `system_data` | `Dict` | Internal data (purchase dates, error codes, known issues) |
 | `done` | `bool` | Whether the episode has terminated |
-| `reward` | `float` | Cumulative normalized score [0.0, 1.0] |
+| `reward` | `float` | Cumulative normalized score [0.01, 0.99] |
 | `metadata` | `Dict` | Step-level grading info (e.g., `{"info": "Sent password reset (+0.9)"}`) |
 
 ### Reward Function
@@ -70,7 +70,7 @@ The reward function provides **dense, partial-credit signals** — not just spar
 
 ```
 step_reward = action_reward + tone_bonus - penalties
-final_score = clamp(total_accumulated_reward / task_normalization, 0.0, 1.0)
+final_score = clamp(total_accumulated_reward / task_normalization, 0.01, 0.99)
 ```
 
 **Reward components:**
@@ -175,13 +175,13 @@ Evaluated using `inference.py` with three scripted agents and an optional LLM ag
 |:------|:------:|:------:|:-----:|:-----:|:------:|:------:|:-------:|
 | 🟢 **Perfect** | 0.960 | 0.960 | 0.929 | 0.929 | 0.889 | 0.889 | **0.926** |
 | 🟡 **Imperfect** | 0.640 | 0.640 | 0.643 | 0.643 | 0.556 | 0.556 | **0.613** |
-| 🔴 **Random** | 0.128 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | **0.021** |
+| 🔴 **Random** | 0.128 | 0.010 | 0.010 | 0.010 | 0.010 | 0.010 | **0.021** |
 
 ### Key Observations
 
 - ✅ **Score differentiation**: Perfect >> Imperfect >> Random across all 6 tasks
 - ✅ **Difficulty scaling**: Perfect agent scores decrease with difficulty (0.960 → 0.929 → 0.889)
-- ✅ **No perfect scores**: Even the optimal agent doesn't reach 1.0 — the environment is genuinely challenging
+- ✅ **No perfect scores**: Even the optimal agent doesn't reach 0.99 — the environment is genuinely challenging
 - ✅ **Anti-gaming protection**: Keyword-stuffing with hedging phrases gets reduced credit
 - ✅ **Forbidden phrase enforcement**: Agent replies checked against `data/forbidden_phrases.txt`
 - ✅ **Data-driven grading**: Policy values loaded from `data/company_policy.json`, not hardcoded

@@ -296,7 +296,7 @@ def run_episode(agent, task_id, max_steps=10):
     env = SupportEnvironment()
     env.reset(task_id=task_id)
 
-    final_score = 0.0
+    final_score = 0.01
     steps_taken = 0
     step_details = []
 
@@ -304,7 +304,7 @@ def run_episode(agent, task_id, max_steps=10):
         step_num = step + 1
         action = agent.act(task_id, step_num)
         obs = env.step(action)
-        reward_val = obs.reward if obs.reward is not None else 0.0
+        reward_val = obs.reward if obs.reward is not None else 0.01
         info_str = obs.metadata.get("info", "")
         
         final_score = reward_val
@@ -430,7 +430,7 @@ def run_phase2(client, use_api):
             action_str = f"{action.tool_name}({args_str})" if args_str else f"{action.tool_name}()"
             
             obs = env.step(action)
-            reward_val = obs.reward if obs.reward is not None else 0.0
+            reward_val = obs.reward if obs.reward is not None else 0.01
             info_str = obs.metadata.get("info", "")
             error_msg = obs.metadata.get("error", None)
             step_scores.append(reward_val)
@@ -444,11 +444,11 @@ def run_phase2(client, use_api):
 
             # ═══ STRUCTURED OUTPUT: [STEP] ═══
             error_output = error_msg if error_msg else "null"
-            print(f"[STEP] step={step_num} action={action_str} reward={reward_val:.3f} done={str(obs.done).lower()} error={error_output}", flush=True)
+            print(f"[STEP] step={step_num} action={action_str} reward={reward_val:.2f} done={str(obs.done).lower()} error={error_output}", flush=True)
 
             print(f"    Step {step_num}: {action.tool_name}" +
                   (f"({args_str})" if args_str and len(args_str) < 60 else "") +
-                  f"  → {reward_val:.3f}  {info_str}")
+                  f"  → {reward_val:.2f}  {info_str}")
 
             if obs.done:
                 is_success = True
@@ -456,15 +456,15 @@ def run_phase2(client, use_api):
 
         elapsed = time.time() - start
         total_time += elapsed
-        final = step_details[-1]["reward"] if step_details else 0.0
-        rewards_list = ",".join(f"{d['reward']:.3f}" for d in step_details)
+        final = step_details[-1]["reward"] if step_details else 0.01
+        rewards_list = ",".join(f"{d['reward']:.2f}" for d in step_details)
         llm_results[task_id] = {"score": final, "steps": len(step_details),
                                  "time": elapsed, "mode": agent_mode}
 
         # ═══ STRUCTURED OUTPUT: [END] ═══
         print(f"[END] success={str(is_success).lower()} steps={len(step_details)} rewards={rewards_list}", flush=True)
 
-        print(f"    ✓ Completed in {len(step_scores)} steps │ Score: {final:.3f} │ Time: {elapsed:.2f}s │ Agent: {agent_mode}")
+        print(f"    ✓ Completed in {len(step_scores)} steps │ Score: {final:.2f} │ Time: {elapsed:.2f}s │ Agent: {agent_mode}")
         print()
 
     # LLM Summary
@@ -555,18 +555,18 @@ def run_inference():
     )
 
     print(f"  Agent Comparison:")
-    print(f"    🟢 Perfect (baseline)  │ {perf_avg:.3f}")
-    print(f"    {agent_label:22s} │ {llm_avg:.3f}  {comparison_note}")
+    print(f"    🟢 Perfect (baseline)  │ {perf_avg:.2f}")
+    print(f"    {agent_label:22s} │ {llm_avg:.2f}  {comparison_note}")
     if imperf_avg > 0:
-        print(f"    🟡 Imperfect           │ {imperf_avg:.3f}  "
+        print(f"    🟡 Imperfect           │ {imperf_avg:.2f}  "
               f"({agent_label.split()[-1]} is {((llm_avg - imperf_avg) / imperf_avg * 100):.0f}% better)")
     if rand_avg > 0:
-        print(f"    🔴 Random              │ {rand_avg:.3f}  "
+        print(f"    🔴 Random              │ {rand_avg:.2f}  "
               f"({agent_label.split()[-1]} is {llm_avg / rand_avg:.1f}x better)")
 
     print(f"\n  System Checks:")
     print(f"    ✅ All {len(TASK_CONFIGS)} tasks completed without errors")
-    print(f"    ✅ Scores in valid range [0.0, 1.0]")
+    print(f"    ✅ Scores in valid range (0.01, 0.99)")
     print(f"    ✅ Agent differentiation: Perfect > Imperfect > Random")
     print(f"    ✅ Difficulty scaling: Easy > Medium > Hard")
     print(f"    ✅ Reward shaping produces meaningful gradients")

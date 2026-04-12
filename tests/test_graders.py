@@ -10,7 +10,7 @@ def test_easy_correct_sequence_scores_high():
     env.reset(task_id="easy_ticket_1")
     obs = env.step(SupportAction(tool_name="send_password_reset", tool_args={"email": "john@example.com"}))
     obs = env.step(SupportAction(tool_name="close_ticket", tool_args={}))
-    assert 0.85 <= obs.reward < 1.0, f"Expected ~0.96 (high but not perfect), got {obs.reward}"
+    assert 0.85 <= obs.reward < 0.99, f"Expected ~0.96 (high but not perfect), got {obs.reward}"
     assert obs.done is True
 
 
@@ -20,7 +20,7 @@ def test_easy_2_correct_sequence_scores_high():
     env.reset(task_id="easy_ticket_2")
     obs = env.step(SupportAction(tool_name="send_password_reset", tool_args={"email": "sarah.chen@example.com"}))
     obs = env.step(SupportAction(tool_name="close_ticket", tool_args={}))
-    assert 0.85 <= obs.reward < 1.0, f"Expected ~0.96 (high but not perfect), got {obs.reward}"
+    assert 0.85 <= obs.reward < 0.99, f"Expected ~0.96 (high but not perfect), got {obs.reward}"
     assert obs.done is True
 
 
@@ -40,7 +40,7 @@ def test_medium_policy_denial_scores_high():
     obs = env.step(SupportAction(tool_name="reply_to_customer", tool_args={
         "content": "Your purchase exceeds our 30-day refund window. We cannot process this refund."
     }))
-    assert 0.75 <= obs.reward < 1.0, f"Expected ~0.93 (high but not perfect), got {obs.reward}"
+    assert 0.75 <= obs.reward < 0.99, f"Expected ~0.93 (high but not perfect), got {obs.reward}"
 
 
 def test_medium_2_warranty_denial_scores_high():
@@ -51,7 +51,7 @@ def test_medium_2_warranty_denial_scores_high():
     obs = env.step(SupportAction(tool_name="reply_to_customer", tool_args={
         "content": "Your product is past the 90-day warranty period. We cannot approve a replacement."
     }))
-    assert 0.75 <= obs.reward < 1.0, f"Expected high score for correct warranty denial, got {obs.reward}"
+    assert 0.75 <= obs.reward < 0.99, f"Expected high score for correct warranty denial, got {obs.reward}"
 
 
 def test_medium_issue_refund_is_policy_violation():
@@ -59,7 +59,7 @@ def test_medium_issue_refund_is_policy_violation():
     env = SupportEnvironment()
     env.reset(task_id="medium_ticket_1")
     obs = env.step(SupportAction(tool_name="issue_refund", tool_args={}))
-    assert obs.reward <= 0.01, f"Expected near 0 for policy violation, got {obs.reward}"
+    assert obs.reward <= 0.01, f"Expected near minimum for policy violation, got {obs.reward}"
 
 
 def test_hard_correct_sequence_scores_high():
@@ -70,7 +70,7 @@ def test_hard_correct_sequence_scores_high():
     obs = env.step(SupportAction(tool_name="reply_to_customer", tool_args={
         "content": "The logs show ERR-99. Please update your client to v2.1 to resolve this."
     }))
-    assert 0.80 <= obs.reward < 1.0, f"Expected ~0.89 (high but not perfect), got {obs.reward}"
+    assert 0.80 <= obs.reward < 0.99, f"Expected ~0.89 (high but not perfect), got {obs.reward}"
     assert obs.done is True
 
 
@@ -82,7 +82,7 @@ def test_hard_2_correct_sequence_scores_high():
     obs = env.step(SupportAction(tool_name="reply_to_customer", tool_args={
         "content": "The logs show ERR-42. Your cache is 98% full. Please clear cache to resolve the timeout."
     }))
-    assert 0.80 <= obs.reward < 1.0, f"Expected high score for correct ERR-42 diagnosis, got {obs.reward}"
+    assert 0.80 <= obs.reward < 0.99, f"Expected high score for correct ERR-42 diagnosis, got {obs.reward}"
     assert obs.done is True
 
 
@@ -99,12 +99,12 @@ def test_hard_keyword_stuffing_with_hedging():
 
 
 def test_scores_in_valid_range():
-    """All task scores must be in (0.0, 1.0) exclusive."""
+    """All task scores must be in (0.01, 0.99) exclusive."""
     for task_id in ["easy_ticket_1", "easy_ticket_2", "medium_ticket_1", "medium_ticket_2", "hard_ticket_1", "hard_ticket_2"]:
         env = SupportEnvironment()
         env.reset(task_id=task_id)
         obs = env.step(SupportAction(tool_name="close_ticket", tool_args={}))
-        assert 0.0 < obs.reward < 1.0, f"Score {obs.reward} out of range for {task_id}"
+        assert 0.01 <= obs.reward < 0.99, f"Score {obs.reward} out of range for {task_id}"
 
 
 def test_score_differentiation():

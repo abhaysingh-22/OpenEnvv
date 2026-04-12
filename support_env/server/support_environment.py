@@ -126,7 +126,7 @@ TICKETS = {
     },
 }
 
-# Normalization constants per task (set above achievable max so no agent gets 1.0)
+# Normalization constants per task (set above achievable max so no agent gets a perfect score)
 TASK_NORMALIZATION = {
     "easy_ticket_1": 1.25, "easy_ticket_2": 1.25,
     "medium_ticket_1": 1.40, "medium_ticket_2": 1.40,
@@ -135,25 +135,25 @@ TASK_NORMALIZATION = {
 
 
 def _check_forbidden_phrases(content: str) -> float:
-    """Check reply content against forbidden phrases. Returns penalty (0.0 or negative)."""
+    """Check reply content against forbidden phrases. Returns penalty (0 or negative)."""
     content_lower = content.lower()
     for phrase in FORBIDDEN_PHRASES:
         if phrase in content_lower:
             return -0.2  # Penalty for using forbidden language
-    return 0.0
+    return 0
 
 
 def _check_keyword_quality(content: str, required_keyword: str) -> float:
     """Anti-keyword-stuffing: keyword must appear in a constructive sentence, not with hedging."""
     content_lower = content.lower()
     if required_keyword.lower() not in content_lower:
-        return 0.0  # Keyword not present at all
+        return 0  # Keyword not present at all
     # Check for hedging/confusion phrases that indicate the agent is guessing
     hedging = ["i don't know", "i'm not sure", "maybe", "i think", "possibly", "not certain", "unclear"]
     for hedge in hedging:
         if hedge in content_lower:
             return 0.4  # Partial credit — keyword present but agent is hedging
-    return 0.9  # Full credit — keyword present, no hedging (strictly < 1.0)
+    return 0.9  # Full credit — keyword present, no hedging (strictly < 1)
 
 
 class SupportEnvironment(Environment):
@@ -163,7 +163,7 @@ class SupportEnvironment(Environment):
         super().__init__()
         self._state = SupportState(task_id="easy_ticket_1")
         self._current_obs: Optional[SupportObservation] = None
-        self._total_reward = 0.0
+        self._total_reward = 0
         self._wrong_action_count = 0
         self._last_action: Optional[str] = None
         self._hard_task_sequence = []
@@ -185,7 +185,7 @@ class SupportEnvironment(Environment):
             episode_id = str(uuid.uuid4())
 
         self._state = SupportState(task_id=task_id, episode_id=episode_id, step_count=0)
-        self._total_reward = 0.0
+        self._total_reward = 0
         self._wrong_action_count = 0
         self._last_action = None
         self._hard_task_sequence = []
@@ -355,7 +355,7 @@ class SupportEnvironment(Environment):
         # ──────────────────────────────────────────────────────────────────────
         # Grading Logic (by task TYPE)
         # ──────────────────────────────────────────────────────────────────────
-        step_reward = 0.0
+        step_reward = 0
         info_str = ""
 
         if task_type == "password_reset":
@@ -431,7 +431,7 @@ class SupportEnvironment(Environment):
                         step_reward, info_str = 0.9, f"Correct diagnosis: {fix_keyword} (+0.9)"
                     elif quality >= 0.3:  # Hedged diagnosis (quality = 0.4)
                         step_reward, info_str = 0.4, f"Hedged diagnosis ({fix_keyword} mentioned but uncertain) (+0.4)"
-                    else:  # Not found (quality = 0.0)
+                    else:  # Not found (quality = 0)
                         self._wrong_action_count += 1
                         step_reward, info_str = -0.5, "Wrong diagnosis (-0.5)"
                     step_reward += _check_forbidden_phrases(content)
@@ -448,7 +448,7 @@ class SupportEnvironment(Environment):
                         step_reward, info_str = 0.6, "Late diagnosis (+0.6)"
                     elif quality >= 0.3:  # Hedged late diagnosis (quality = 0.4)
                         step_reward, info_str = 0.3, "Hedged late diagnosis (+0.3)"
-                    else:  # Not found (quality = 0.0)
+                    else:  # Not found (quality = 0)
                         step_reward, info_str = -0.3, "Extra communication (-0.3)"
                     step_reward += _check_forbidden_phrases(content)
                 elif action.tool_name == self._last_action:
@@ -471,12 +471,12 @@ class SupportEnvironment(Environment):
         self._last_action = action.tool_name
 
         # Final normalization to (0, 1) — strictly between 0 and 1 (exclusive)
-        # Clamp to 0.01 and 0.99 to prevent any 2-decimal truncation from making it mathematically 0.0 or 1.0
+        # Clamp to 0.01 and 0.99 to prevent any 2-decimal truncation from making it mathematically zero or one
         norm = TASK_NORMALIZATION.get(task_id, 1.5)
         final_score = max(0.01, min(0.99, self._total_reward / norm))
         
-        # Round to 3 decimals, then clamp again as safety check
-        rounded_reward = round(final_score, 3)
+        # Round to 2 decimals, then clamp again as safety check
+        rounded_reward = round(final_score, 2)
         rounded_reward = max(0.01, min(0.99, rounded_reward))
 
         # Update observation

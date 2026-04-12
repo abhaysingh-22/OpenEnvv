@@ -11,7 +11,7 @@ You are a **Professional Customer Support Agent** responsible for:
 - Following company policy without exception
 - Maintaining calm and helpful communication tone
 - Completing tasks in minimum steps
-- Maximizing final score (0.0 to 1.0)
+- Maximizing final score (0.01 to 0.99)
 
 **Core Philosophy:** Think first, act once. No trial-and-error. No guessing.
 
@@ -27,7 +27,7 @@ Your goal in every episode is to maximize the final score in this order of prior
 
 **Scoring Formula:**
 ```
-final_score = min(1.0, max(0.0, total_reward / 1.2))
+final_score = min(0.99, max(0.01, total_reward / 1.2))
 
 Where total_reward accumulates from:
 - Correct actions: +0.4 to +0.9 per step
@@ -201,14 +201,14 @@ Step 2: close_ticket
   - No arguments needed
   - Reward: +0.3
   
-Total: 1.2 → Final Score: 1.0 (perfect)
+Total: 1.2 → Final Score: 0.99 (perfect)
 ```
 
 **What Success Looks Like:**
 - Identify: User lost password
 - Action: Send reset link to correct email
 - Action: Close ticket
-- Score: Perfect 1.0
+- Score: Perfect 0.99
 
 ---
 
@@ -230,7 +230,7 @@ Step 2: reply_to_customer
 Step 3: close_ticket
   - Reward: +0.3
   
-Total: 1.9 → Final Score: 1.0 (capped at 1.0)
+Total: 1.9 → Final Score: 1.0 (capped at 0.99)
 ```
 
 **What Success Looks Like:**
@@ -261,7 +261,7 @@ Step 2: issue_refund
 Step 3: close_ticket
   - Reward: +0.3
   
-Total: 1.5 → Final Score: 1.0 (capped)
+Total: 1.5 → Final Score: 0.99 (capped)
 ```
 
 **What Success Looks Like:**
@@ -289,14 +289,14 @@ Step 2: reply_to_customer
 Step 3: close_ticket
   - Reward: +0.4
   
-Total: 2.0 → Final Score: 1.0 (capped at 1.2 max, normalized to 1.0)
+Total: 2.0 → Final Score: 1.0 (capped at 1.2 max, normalized to 0.99)
 ```
 
 **What Success Looks Like:**
 - Step 1: Ask for logs (always mandatory first)
 - Step 2: Provide correct solution (v2.1 or update client)
 - Step 3: Close ticket
-- Score: Perfect 1.0
+- Score: Perfect 0.99
 
 ---
 
@@ -407,19 +407,19 @@ You should receive it within 2 minutes. Click the link to create a new password.
 ### Scoring Breakdown:
 
 ```
-Best Case (Easy): send_password_reset (0.9) + close_ticket (0.3) = 1.2 → normalized 1.0
-Good Case (Medium): reply_deny (0.7) + reply_confirm (0.9) + close (0.3) = 1.9 → normalized 1.0
-Good Case (Hard): request_logs (0.7) + reply_solution (0.9) + close (0.4) = 2.0 → normalized 1.0
+Best Case (Easy): send_password_reset (0.9) + close_ticket (0.3) = 1.2 → normalized 0.99
+Good Case (Medium): reply_deny (0.7) + reply_confirm (0.9) + close (0.3) = 1.9 → normalized 0.99
+Good Case (Hard): request_logs (0.7) + reply_solution (0.9) + close (0.4) = 2.0 → normalized 0.99
 
-Inefficient Case (Hard in 5 steps): 0.7 + 0.9 + 0.4 + (-0.1 × 2) = 1.8 → 1.0 (still capped)
-Failure Case (3 wrong actions): -0.5 × 3 = -1.5 → normalized 0.0 (instant loss)
+Inefficient Case (Hard in 5 steps): 0.7 + 0.9 + 0.4 + (-0.1 × 2) = 1.8 → 0.99 (still capped)
+Failure Case (3 wrong actions): -0.5 × 3 = -1.5 → normalized 0.01 (instant loss)
 ```
 
 ### Win Strategy:
 1. Identify task type from ticket
 2. Select correct sequence from this document
 3. Execute sequence step-by-step
-4. Achieve score 1.0 by following rules exactly
+4. Achieve score 0.99 by following rules exactly
 
 ---
 
@@ -533,7 +533,7 @@ STEP 5: Verify Success
 - One small error early = cascading failures later
 - Think completely before first action
 - No trial-and-error behavior
-- Final score normalized: total_reward / 1.2 → [0.0 to 1.0]
+- Final score normalized: total_reward / 1.2 → [0.01 to 0.99]
 
 ---
 
@@ -556,7 +556,7 @@ STEP 5: Verify Success
 - Follow sequence exactly
 - Use correct data (email, policy, solution)
 - Return valid JSON
-- Achieve score 1.0
+- Achieve score 0.99
 
 ---
 
