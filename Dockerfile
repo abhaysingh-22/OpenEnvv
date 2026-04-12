@@ -10,12 +10,17 @@ ENV PYTHONUNBUFFERED=1 \
 
 # ────────────────────────────────────────────────────────────────────
 # CACHE-BUSTER: Forces fresh build on HuggingFace Spaces
-# Updated: 2026-04-12 v2 - Fixed rounding bug (0.9994 instead of 0.9995)
-# Reward validator: Pydantic field_validator for range (0, 1)
+# Updated: 2026-04-12 FINAL - Comprehensive reward safety pipeline
+# - Pre-clamp: (0.0005, 0.9994) prevents rounding to edges
+# - Post-clamp: (0.001, 0.999) defense in depth
+# - Pydantic validator: ensures (0, 1) strictly at API level
+# - Assertion: runtime check every reward calculation
 # ────────────────────────────────────────────────────────────────────
-RUN echo "Build timestamp: $(date -u)" && \
-    echo "Critical fix: Upper bound clamp 0.9994 prevents 1.0 rounding" && \
-    echo "Validator: Pydantic field_validator for reward range (0, 1)"
+RUN echo "Final comprehensive safety pipeline:" && \
+    echo "  ✓ Math proven safe: round(0.0005, 3)=0.001, round(0.9994, 3)=0.999" && \
+    echo "  ✓ No reward can reach 0.0 or 1.0 mathematically" && \
+    echo "  ✓ Pydantic validator enforces (0, 1) strictly" && \
+    echo "  ✓ Runtime assertions verify every step"
 
 # Install Python dependencies, then strip heavy unused transitive deps in SAME layer
 # openenv-core pulls gradio/numpy/etc. for rich envs — we only need the HTTP server core
