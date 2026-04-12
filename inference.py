@@ -246,8 +246,8 @@ def get_llm_action(client, obs_dict, history, task_id=None, step_count=1):
 
     try:
         import re
-        api_base = os.getenv("API_BASE_URL")
-        api_key = os.getenv("API_KEY")
+        api_base = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+        api_key = os.getenv("HF_TOKEN")
         active_client = OpenAI(api_key=api_key, base_url=api_base) if api_base and api_key else client
 
         response = active_client.chat.completions.create(
@@ -403,7 +403,7 @@ def run_phase2(client, use_api):
         print(f"  {'─' * 66}")
 
         # ═══ STRUCTURED OUTPUT: [START] ═══
-        print(f"[START] task={task_id}", flush=True)
+        print(f"[START] task={task_id} env=support_env model={model_name}", flush=True)
 
         env = SupportEnvironment()
         obs = env.reset(task_id=task_id)
@@ -411,6 +411,8 @@ def run_phase2(client, use_api):
         agent_mode = "LLM" if use_api else "scripted"
         start = time.time()
         step_scores = []
+        step_details = []
+        is_success = False
 
         for step in range(10):
             step_num = step + 1
@@ -425,29 +427,42 @@ def run_phase2(client, use_api):
                     agent_mode = "scripted (LLM fallback)"
 
             args_str = json.dumps(action.tool_args) if action.tool_args else ""
+            action_str = f"{action.tool_name}({args_str})" if args_str else f"{action.tool_name}()"
+            
             obs = env.step(action)
             reward_val = obs.reward if obs.reward is not None else 0.0
             info_str = obs.metadata.get("info", "")
+            error_msg = obs.metadata.get("error", None)
             step_scores.append(reward_val)
+            
+            step_details.append({
+                "action": action_str,
+                "reward": reward_val,
+                "done": obs.done,
+                "error": error_msg
+            })
 
             # ═══ STRUCTURED OUTPUT: [STEP] ═══
-            print(f"[STEP] step={step_num} reward={reward_val:.3f}", flush=True)
+            error_output = error_msg if error_msg else "null"
+            print(f"[STEP] step={step_num} action={action_str} reward={reward_val:.2f} done={str(obs.done).lower()} error={error_output}", flush=True)
 
             print(f"    Step {step_num}: {action.tool_name}" +
                   (f"({args_str})" if args_str and len(args_str) < 60 else "") +
                   f"  → {reward_val:.3f}  {info_str}")
 
             if obs.done:
+                is_success = True
                 break
 
         elapsed = time.time() - start
         total_time += elapsed
-        final = step_scores[-1] if step_scores else 0.0
-        llm_results[task_id] = {"score": final, "steps": len(step_scores),
+        final = step_details[-1]["reward"] if step_details else 0.0
+        rewards_list = ",".join(f"{d['reward']:.2f}" for d in step_details)
+        llm_results[task_id] = {"score": final, "steps": len(step_details),
                                  "time": elapsed, "mode": agent_mode}
 
         # ═══ STRUCTURED OUTPUT: [END] ═══
-        print(f"[END] task={task_id} score={final:.3f} steps={len(step_scores)}", flush=True)
+        print(f"[END] success={str(is_success).lower()} steps={len(step_details)} rewards={rewards_list}", flush=True)
 
         print(f"    ✓ Completed in {len(step_scores)} steps │ Score: {final:.3f} │ Time: {elapsed:.2f}s │ Agent: {agent_mode}")
         print()
@@ -484,9 +499,9 @@ def run_inference():
     print("   OpenEnv Evaluation · Customer Support Ticket Environment")
     print("══════════════════════════════════════════════════════════════════════")
 
-    api_key = os.getenv("API_KEY")
+    api_key = os.getenv("HF_TOKEN")
     model_name = os.getenv("MODEL_NAME", "gpt-4.1-mini")
-    api_base = os.getenv("API_BASE_URL")
+    api_base = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
     hf_token = os.getenv("HF_TOKEN")
 
     print(f"\n  Configuration")
